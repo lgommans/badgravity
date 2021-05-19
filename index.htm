@@ -1,0 +1,96 @@
+<meta charset='utf-8'>
+<title>Bad Gravity</title>
+<!-- Parts taken from https://arachnoid.com/orbital_dynamics/resources/physics_engine.js -->
+<!-- Therefore the license is GNU General Public License version 2 or (at your option) any later version. -->
+<!-- Gravity calculations Copyright (C) 2013, Paul Lutus -->
+
+<style>
+	body {
+		margin: 0;
+		padding: 0;
+	}
+	div, canvas {
+		position: absolute;
+	}
+	canvas {
+		width: 100%;
+		height: 100%;
+	}
+	label {
+		white-space: nowrap;
+		margin-right: 10px;
+	}
+	input {
+		border: 1px solid #000;
+		padding: 2px;
+		margin-top: 1px;
+		margin-bottom: 1px;
+		border-radius: 3px;
+	}
+	input[type="text"] {
+		width: 120px;
+	}
+	input[type="number"] {
+		width: 80px;
+	}
+	input[type="button"] {
+		font-size: 0.9em;
+		padding: 5px;
+	}
+	#controls {
+		margin-left: 7px;
+		margin-top: 4px;
+		line-height: 2.1;
+	}
+	#gravitywell {
+		font-weight: bold;
+	}
+	#timeperstepinput, #runsperstepinput {
+		width: 50px;
+	}
+	.boosting {
+		box-shadow: 0 4px 4px -3px red;
+	}
+</style>
+<noscript>
+	<strong>JavaScript seems disabled</strong>. Since this is supposed to be an in-browser game, that doesn't really work.
+	There are no third-party scripts, cookies, trackers, or any such things here.
+</noscript>
+<canvas></canvas>
+<div id=bodies>
+	<div id=Gbody></div>
+	<div id=Abody></div>
+</div>
+<div id=controls>
+	<label title="Amount of time that passes each time the simulator does one step. Lower is more precision.">Time per step=<input type=number value=50 id=timeperstepinput></label>
+	<label title="Number of steps forwards per run of the simulation (it calls the step function this many times)">Steps per run=<input type=number min=0 step=1 value=10 id=stepsperruninput></label>
+	<label title="How fast your ship (A) accelerates. Lower for more precise movements.">A accel=<input type=number value=8 id=accelinput></label>
+
+	<!-- <label title="Instead of insane speed-ups, getting very close to the planet slows you down">Atmospheres=<input type=checkbox id=atmospherescheckbox checked></label> -->
+
+	<!-- TODO make number of bodies variable. -->
+	<span id=bodiescontrols>
+		<label title="Mass of object. This value is applied immediately">G mass=<input type=number value=3e6 id=Gmass></label>
+		<label title="Start position. This value is applied when you restart">G position=<input type=text value="0,0" id=Gpos></label>
+		<label title="Start speed. This value is applied when you restart">G vector=<input type=text value="0,0" id=Gvec></label>
+
+		<label title="Mass of object. This value is applied immediately">A mass=<input type=number value=1000 id=Amass></label>
+		<label title="Start position. This value is applied when you restart">A position=<input type=text value="300,0" id=Apos></label>
+		<label title="Start speed. This value is applied when you restart">A vector=<input type=text value="0.0001,-0.0004" id=Avec></label>
+	</span>
+
+	<span id=bodiesspeeds>
+		<label>G speed=<input readonly type=text id=Gvelocity></label>
+		<label>A speed=<input readonly type=text id=Avelocity></label>
+	</span>
+
+	<label title="Add a body to the system. Spawns near A at A's current vector; you need to adjust the parameters and restart to get the orbit you want (if anything in particular)."><input type=button value="Add body" id=addbodybtn></label>
+	<label title="Another scenario where you can try to get into and transfer between orbits around different bodies."><input type=button value="Scenario#2" id=scenario2btn></label>
+	<label><input type=button value="Clear trails" id=clearstroke></label>
+	<label><input type=button value="Restart" id=restartbtn></label>
+	<label><input type=button value="Help" onclick='location="about.html";'></label>
+</div>
+
+<script src='cart2.js'></script>
+<script src='engine.js'></script>
+
