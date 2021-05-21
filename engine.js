@@ -14,14 +14,101 @@ function lengthdir_y(len, dir) {
 	return len * -Math.sin(dir / 180 * Math.PI);
 }
 
-function shoottowardsmouse() {
-	let distance = 15; // create the object at this distance from A
-	let vel = 0.001; // speed at which you fire the shot
+Cart2.prototype.toPagePos = function() {
+	return new Cart2((innerWidth / 2) + (this.x / scale), (innerHeight / 2) + (this.y / scale));
+}
 
-	let radians = Math.atan2($("#Abody").position.toPagePos().y - mouseY, mouseX - $("#Abody").position.toPagePos().x);
-	let degrees = (radians * 180) / Math.PI;
-	while (degrees >= 360) degrees -= 360;
-	while (degrees < 0) degrees += 360;
+function saveGame() {
+	let gamedata = {
+		tps: timeperstepfield.value,
+		spr: stepsperrunfield.value,
+		scale: scale,
+		Aaccel: accelfield.value,
+		fixedSun: fixedSun,
+		bodies: [],
+	};
+
+	for (let i in bodies) {
+		let b = bodies[i];
+		gamedata.bodies.push({
+			name: b.innerText,
+			spos: $(`#${b.innerText}pos`).value,
+			svec: $(`#${b.innerText}vec`).value,
+			mass: $(`#${b.innerText}mass`).value,
+			cpos: b.position.toString(),
+			cvec: b.velocity.toString(),
+		});
+		if (b.orientation) {
+			gamedata.bodies[gamedata.bodies.length - 1].orientation = b.orientation;
+		}
+	}
+
+	location.hash = '#' + JSON.stringify(gamedata);
+
+	if ( ! localStorage.savemsgshown) {
+		alert('The game state was successfully encoded into the page link.\nPlease copy and store the link from the address bar to save this state.\nThis message is shown only once.');
+		localStorage.savemsgshown = true;
+	}
+}
+
+function loadGame(data) {
+	data = JSON.parse(data);
+
+	timeperstepfield.value = data.tps;
+	stepsperrunfield.value = data.spr;
+	$("#scaleinput").value = data.scale;
+	accelfield.value = data.Aaccel;
+	fixedSun = data.fixedSun;
+
+	if (bodies.length > data.bodies.length) {
+		alert('Cannot fully load game data: removing bodies not yet supported and your local game already has more than are in the save.');
+		// At least move the other one(s) out of the way..
+		for (let i in bodies) {
+			bodies[i].position = new Cart2(-1e40, -1e40);
+			bodies[i].velocity = new Cart2(0, 0);
+			$(`#${bodies[i].innerText}vec`).value = '0,0';
+			$(`#${bodies[i].innerText}pos`).value = '-1e40,-1e40';
+			$(`#${bodies[i].innerText}mass`).value = '0';
+		}
+	}
+
+	while (bodies.length < data.bodies.length) {
+		addBody(); // don't care about params, we're going to override them anyway
+	}
+
+	for (let datai in data.bodies) {
+		// Because the controls aren't bound to a body and I can't change the name easily atm, let's just find a matching one.
+		// The way names are generated, everyone with the same body count should have the same bodies' names as well. So it should work... until we change something in the game.
+		let found = false;
+		datai = parseInt(datai);
+		for (let locali in bodies) {
+			if (bodies[locali].innerText == data.bodies[datai].name) {
+				let b = data.bodies[datai];
+
+				bodies[locali].position = new Cart2(b.cpos.x, b.cpos.y);
+				bodies[locali].velocity = new Cart2(b.cvec.x, b.cvec.y);
+				$(`#${bodies[locali].innerText}vec`).value = b.svec;
+				$(`#${bodies[locali].innerText}pos`).value = b.spos;
+				$(`#${bodies[locali].innerText}mass`).value = b.mass;
+
+				found = true;
+				break;
+			}
+		}
+
+		if ( ! found) {
+			// If you get this error, well, the data is there, you can restore it if you improve the restoring process...
+			alert('Loading error due to my shitty setup: did not find a matching body for one of the savegame bodies');
+		}
+	}
+}
+
+function shoottowardsmouse() {
+	// TODO why does this change A's trajectory so much when the new body has a mass of 1 and is sufficiently far away?
+	let distance = 25e9; // create the object at this distance from A
+	let vel = 343 * 2; // speed at which you fire the shot, approximately mach 2
+
+	let degrees = $("#Abody").position.toPagePos().angle(new Cart2(mouseX, mouseY));
 	let config;
 	addBody(config = {
 		velocity: new Cart2($("#Abody").velocity).addTo(new Cart2(lengthdir_x(vel, degrees), lengthdir_y(vel, degrees))),
@@ -29,26 +116,12 @@ function shoottowardsmouse() {
 	});
 }
 
-function resetParameters() {
+function resetSimulation() {
 	$("canvas").width = innerWidth;
 	$("canvas").height = innerHeight;
-
-	sun.position = new Cart2(parseFloat($("#Gpos").value.split(',')[0]), parseFloat($("#Gpos").value.split(',')[1]));
-	sun.velocity = new Cart2(parseFloat($("#Gvec").value.split(',')[0]), parseFloat($("#Gvec").value.split(',')[1]));
-	sun.mass = parseFloat($("#Gmass").value);
-	sun.innerText = 'G';
-
-	orb.position = new Cart2(parseFloat($("#Apos").value.split(',')[0]), parseFloat($("#Apos").value.split(',')[1]));
-	orb.velocity = new Cart2(parseFloat($("#Avec").value.split(',')[0]), parseFloat($("#Avec").value.split(',')[1]));
-	orb.mass = parseFloat($("#Amass").value);
-	orb.innerHTML = 'A';
-	orb.orientation = 0;
+	scale = parseFloat($("#scaleinput").value);
 
 	for (let i in bodies) {
-		if (bodies[i] == sun || bodies[i] == orb) {
-			continue;
-		}
-
 		let name = bodies[i].innerText;
 		bodies[i].position = new Cart2(parseFloat($(`#${name}pos`).value.split(',')[0]), parseFloat($(`#${name}pos`).value.split(',')[1]));
 		bodies[i].velocity = new Cart2(parseFloat($(`#${name}vec`).value.split(',')[0]), parseFloat($(`#${name}vec`).value.split(',')[1]));
@@ -57,18 +130,23 @@ function resetParameters() {
 
 function run() {
 	if (arrowUp) {
-		let accel = parseFloat(accelfield.value) / 1e6;
-		orb.velocity.addTo(new Cart2(lengthdir_x(accel, orb.orientation - 90), lengthdir_y(accel, orb.orientation + 90)));
-		orb.classList.add('boosting');
+		let accel = parseFloat(accelfield.value);
+		iss.velocity.addTo(new Cart2(lengthdir_x(accel, iss.orientation - 90), lengthdir_y(accel, iss.orientation + 90)));
+		iss.classList.add('boosting');
 	}
 	else {
-		orb.classList.remove('boosting');
+		iss.classList.remove('boosting');
 	}
 	if (arrowLeft) {
-		orb.orientation -= 4.5;
+		iss.orientation -= 4.5;
 	}
 	if (arrowRight) {
-		orb.orientation += 4.5;
+		iss.orientation += 4.5;
+	}
+
+	for (let i in bodies) {
+		let name = bodies[i].innerText;
+		bodies[i].mass = parseFloat($(`#${name}mass`).value);
 	}
 
 	stepsperrun = parseFloat(stepsperrunfield.value);
@@ -78,7 +156,6 @@ function run() {
 
 	for (let i in bodies) {
 		let name = bodies[i].innerText;
-		bodies[i].mass = parseFloat($(`#${name}mass`).value);
 
 		if (bodies[i].orientation !== undefined) {
 			bodies[i].style.transform = `rotate(${bodies[i].orientation}deg)`;
@@ -96,7 +173,7 @@ function run() {
 }
 
 function step() {
-	let deltatime = 10 * parseFloat(timeperstep.value);
+	let deltatime = 10 * parseFloat(timeperstepfield.value);
 
 	let prevpositions = {};
 	for (let i in bodies) {
@@ -105,41 +182,49 @@ function step() {
 
 	for (let i in bodies) {
 		for (let j in bodies) {
-			if (i == j) {
-				continue; // don't compute self-gravitation
+			if (i >= j) {
+				// compute every body pair once
+				continue;
 			}
 
 			if (fixedSun && bodies[i] == sun) {
 				continue;
 			}
 
-			// this trig-free method does this:
-			// 1. velocity += dt * radius * -GravityConstant * mass * radius.abs()^-1.5
-			// 2. position += dt * velocity
+			let separation = bodies[i].position.sub(bodies[j].position).abs();
 
-			// compute radius of separation
-			let radius = bodies[i].position.sub(bodies[j].position);
+			let masses = bodies[i].mass * bodies[j].mass;
+			let grav_accel = GravityConstant * (masses / Math.pow(separation, 2)) * deltatime;
+			let degrees = bodies[i].position.angle(bodies[j].position);
+			bodies[i].velocity.addTo(new Cart2(lengthdir_x(grav_accel / bodies[i].mass, degrees), lengthdir_y(grav_accel / bodies[i].mass, degrees)));
+			degrees += 180;
+			bodies[j].velocity.addTo(new Cart2(lengthdir_x(grav_accel / bodies[j].mass, degrees), lengthdir_y(grav_accel / bodies[j].mass, degrees)));
 
-			// update velocity with gravitational acceleration
-			bodies[i].velocity.addTo(radius.mult(deltatime * (-GravityConstant * bodies[j].mass * radius.invSumCube())));
-			// update position with velocity
-			bodies[i].position.addTo(bodies[i].velocity.mult(deltatime));
+			if ( ! window.first || window.first < 10) {
+				console.log('computing', bodies[i].innerText, bodies[j].innerText, new Cart2(lengthdir_x(grav_accel / bodies[i].mass, degrees), lengthdir_y(grav_accel / bodies[i].mass, degrees)), new Cart2(lengthdir_x(grav_accel / bodies[j].mass, degrees), lengthdir_y(grav_accel / bodies[j].mass, degrees)));
+			}
 		}
+	}
+
+	if ( ! window.first) window.first = 0;
+	window.first++;
+	for (let i in bodies) {
+		bodies[i].position.addTo(bodies[i].velocity.mult(deltatime));
 	}
 
 	if (STROKE) {
 		for (let i in bodies) {
 			let pagepos = bodies[i].position.toPagePos();
-			canvas.beginPath();
-			canvas.moveTo(prevpositions[i].x, prevpositions[i].y);
-			if (bodies[i] == orb && arrowUp) {
-				canvas.strokeStyle = `rgba(255, 0, 0, 1)`;
+			canvasctx.beginPath();
+			canvasctx.moveTo(prevpositions[i].x, prevpositions[i].y);
+			if (bodies[i] == iss && arrowUp) {
+				canvasctx.strokeStyle = `rgba(255, 0, 0, 1)`;
 			}
 			else {
-				canvas.strokeStyle = `rgba(0, 0, 0, 0.7)`;
+				canvasctx.strokeStyle = `rgba(0, 0, 0, 0.7)`;
 			}
-			canvas.lineTo(pagepos.x, pagepos.y);
-			canvas.stroke();
+			canvasctx.lineTo(pagepos.x, pagepos.y);
+			canvasctx.stroke();
 		}
 	}
 }
@@ -158,7 +243,7 @@ function scenario2() {
 	fixedSun = true;
 	sun.position = new Cart2(0, 0);
 	sun.velocity = new Cart2(0, 0);
-	$("#Gmass").value = '5e5';
+	$("#Smass").value = '5e5';
 
 	$("#Amass").value = '1';
 	$("#Avec").value = '0,0.0001';
@@ -171,7 +256,7 @@ function scenario2() {
 	$("#Cvec").value = '-0.00023,0';
 	$("#Cmass").value = 6000;
 
-	resetParameters();
+	resetSimulation();
 }
 
 function addBody(config) {
@@ -213,16 +298,15 @@ let GravityConstant = 6.6742e-11;
 let FPSINDEPENDENT = false;
 let STROKE = true;
 let FPS = 30;
-let VELOCITY_DISPLAY_CONFIG = {multiply: 1000000, round: true, total: true};
+let VELOCITY_DISPLAY_CONFIG = {round: true, total: true};
 
-let sun = $("#Gbody");
-let orb = $("#Abody");
-let timeperstep = $("#timeperstepinput");
-let stepsperrun = $("#stepsperrun");
-let canvas = $("canvas").getContext('2d');
+let sun = $("#Sbody");
+let earth = $("#Ebody");
+let iss = $("#Abody");
+
+let timeperstepfield = $("#timeperstepinput");
+let canvasctx = $("canvas").getContext('2d');
 let clearstrokebtn = $("#clearstroke");
-let Gmassfield = $("#Gmass");
-let Amassfield = $("#Amass");
 let stepsperrunfield = $("#stepsperruninput");
 let accelfield = $("#accelinput");
 let fixedSun = false;
@@ -231,10 +315,10 @@ let arrowUp = false;
 let arrowLeft = false;
 let arrowRight = false;
 
-$("#restartbtn").onclick = resetParameters;
+$("#restartbtn").onclick = resetSimulation;
 
 clearstrokebtn.onclick = function() {
-	canvas.clearRect(0, 0, $("canvas").width, $("canvas").height)
+	canvasctx.clearRect(0, 0, $("canvas").width, $("canvas").height)
 };
 
 document.onkeydown = function(ev) {
@@ -294,22 +378,29 @@ $("#addbodybtn").onclick = function() {
 	});
 };
 
-let bodies = [sun, orb];
-let mainloop = false;
+let bodies = [sun, earth, iss];
 let mouseX = 0;
 let mouseY = 0;
+let scale = 1e9;
 
 /*
 let framecount = 0;
 let starttime = new Date().getTime();
 function getfps() {
 	console.log(framecount / ((new Date().getTime() - starttime) / 1000));
-	framecount = 0;
-	starttime = new Date().getTime();
 }
 setInterval(getfps, 1000);
 */
 
-resetParameters();
+sun.innerText = 'S';
+earth.innerText = 'E';
+iss.innerText = 'A';
+iss.orientation = 0;
+
+if (location.hash.length > 2) {
+	loadGame(unescape(location.hash.substring(1)));
+}
+
+resetSimulation();
 requestAnimationFrame(run);
 

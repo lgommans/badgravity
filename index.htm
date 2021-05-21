@@ -28,7 +28,7 @@
 		border-radius: 3px;
 	}
 	input[type="text"] {
-		width: 120px;
+		width: 140px;
 	}
 	input[type="number"] {
 		width: 80px;
@@ -58,30 +58,34 @@
 </noscript>
 <canvas></canvas>
 <div id=bodies>
-	<div id=Gbody></div>
+	<div id=Sbody></div>
+	<div id=Ebody></div>
 	<div id=Abody></div>
 </div>
 <div id=controls>
-	<label title="Amount of time that passes each time the simulator does one step. Lower is more precision.">Time per step=<input type=number value=50 id=timeperstepinput></label>
-	<label title="Number of steps forwards per run of the simulation (it calls the step function this many times)">Steps per run=<input type=number min=0 step=1 value=10 id=stepsperruninput></label>
+	<label title="Amount of time that passes each time the simulator does one step. Lower is more precision.">Time per step=<input type=number value=10 id=timeperstepinput></label>
+	<label title="Number of steps forwards per run of the simulation (it calls the step function this many times)">Steps per run=<input type=number min=0 step=1 value=50 id=stepsperruninput></label>
+	<label title="How many meters per pixel? Applied upon restart.">Scale=<input type=number value=1e9 id=scaleinput></label>
 	<label title="How fast your ship (A) accelerates. Lower for more precise movements.">A accel=<input type=number value=8 id=accelinput></label>
 
-	<!-- <label title="Instead of insane speed-ups, getting very close to the planet slows you down">Atmospheres=<input type=checkbox id=atmospherescheckbox checked></label> -->
-
-	<!-- TODO make number of bodies variable. -->
 	<span id=bodiescontrols>
-		<label title="Mass of object. This value is applied immediately">G mass=<input type=number value=3e6 id=Gmass></label>
-		<label title="Start position. This value is applied when you restart">G position=<input type=text value="0,0" id=Gpos></label>
-		<label title="Start speed. This value is applied when you restart">G vector=<input type=text value="0,0" id=Gvec></label>
+		<label title="Mass of object in kg. This value is applied immediately">S mass=<input type=number value=19885e26 id=Smass></label>
+		<label title="Start position in m. This value is applied when you restart">S position=<input type=text value="0,0" id=Spos></label>
+		<label title="Start speed in m/s. This value is applied when you restart">S vector=<input type=text value="0,0" id=Svec></label>
 
-		<label title="Mass of object. This value is applied immediately">A mass=<input type=number value=1000 id=Amass></label>
-		<label title="Start position. This value is applied when you restart">A position=<input type=text value="300,0" id=Apos></label>
-		<label title="Start speed. This value is applied when you restart">A vector=<input type=text value="0.0001,-0.0004" id=Avec></label>
+		<label title="Mass of object in kg. This value is applied immediately">E mass=<input type=number value=5.972e24 id=Emass></label>
+		<label title="Start position in m. This value is applied when you restart">E position=<input type=text value="150e9,0" id=Epos></label>
+		<label title="Start speed in m/s. This value is applied when you restart">E vector=<input type=text value="0,29780" id=Evec></label>
+
+		<label title="Mass of object in kg. This value is applied immediately">A mass=<input type=number value=420e3 id=Amass></label>
+		<label title="Start position in m. This value is applied when you restart">A position=<input type=text value="150006838000,0" id=Apos></label>
+		<label title="Start speed in m/s. This value is applied when you restart">A vector=<input type=text value="0,37440" id=Avec></label>
 	</span>
 
 	<span id=bodiesspeeds>
-		<label>G speed=<input readonly type=text id=Gvelocity></label>
-		<label>A speed=<input readonly type=text id=Avelocity></label>
+		<label title="m/s">S speed=<input readonly type=text id=Svelocity></label>
+		<label title="m/s">E speed=<input readonly type=text id=Evelocity></label>
+		<label title="m/s">A speed=<input readonly type=text id=Avelocity></label>
 	</span>
 
 	<label title="Add a body to the system. Spawns near A at A's current vector; you need to adjust the parameters and restart to get the orbit you want (if anything in particular)."><input type=button value="Add body" id=addbodybtn></label>
@@ -89,6 +93,7 @@
 	<label><input type=button value="Clear trails" id=clearstroke></label>
 	<label><input type=button value="Restart" id=restartbtn></label>
 	<label><input type=button value="Help" onclick='location="about.html";'></label>
+	<label><input type=button value="Save" onclick='saveGame();'></label>
 </div>
 
 <script src='cart2.js'></script>

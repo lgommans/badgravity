@@ -1,5 +1,3 @@
-const SCALE = 1;
-
 function Cart2(x,y) {
 	this.x = 0;
 	this.y = 0;
@@ -63,11 +61,12 @@ function Cart2(x,y) {
 		return `${x},${y}`;
 	}
 
-	this.toPagePos = function(scale) {
-		return {
-			x: (innerWidth / 2) + (this.x / SCALE),
-			y: (innerHeight / 2) + (this.y / SCALE),
-		};
+	this.angle = function(a) {
+		let radians = Math.atan2(this.y - a.y, a.x - this.x);
+		let degrees = (radians * 180) / Math.PI;
+		while (degrees >= 360) degrees -= 360;
+		while (degrees < 0) degrees += 360;
+		return degrees;
 	}
 }
 
