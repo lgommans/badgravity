@@ -24,7 +24,7 @@ function saveGame() {
 		tps: timeperstepfield.value,
 		spr: stepsperrunfield.value,
 		scale: scale,
-		Aaccel: accelfield.value,
+		Athrust: thrustfield.value,
 		bodies: [],
 	};
 
@@ -57,7 +57,7 @@ function loadGame(data) {
 	timeperstepfield.value = data.tps;
 	stepsperrunfield.value = data.spr;
 	$("#scaleinput").value = data.scale;
-	accelfield.value = data.Aaccel;
+	thrustfield.value = data.Athrust;
 
 	if (bodies.length > data.bodies.length) {
 		alert('Cannot fully load game data: removing bodies not yet supported and your local game already has more than are in the save.');
@@ -128,9 +128,9 @@ function resetSimulation() {
 }
 
 function run() {
+	let thrust = 0;
 	if (arrowUp) {
-		let accel = parseFloat(accelfield.value);
-		iss.velocity.addTo(new Cart2(lengthdir_x(accel, iss.orientation - 90), lengthdir_y(accel, iss.orientation + 90)));
+		thrust = parseFloat(thrustfield.value);
 		iss.classList.add('boosting');
 	}
 	else {
@@ -144,19 +144,17 @@ function run() {
 	}
 
 	for (let i in bodies) {
-		let name = bodies[i].innerText;
-		bodies[i].mass = parseFloat($(`#${name}mass`).value);
+		bodies[i].mass = parseFloat($(`#${bodies[i].innerText}mass`).value);
 	}
 
 	let deltatime = 10 * parseFloat(timeperstepfield.value);
 	let stepsperrun = parseFloat(stepsperrunfield.value);
 	for (let i = 0; i < stepsperrun; i++) {
+		iss.velocity.addTo(new Cart2(lengthdir_x(thrust * deltatime / iss.mass, iss.orientation - 90), lengthdir_y(thrust * deltatime / iss.mass, iss.orientation + 90)));
 		step(deltatime, deltatime * GravityConstant);
 	}
 
 	for (let i in bodies) {
-		let name = bodies[i].innerText;
-
 		if (bodies[i].orientation !== undefined) {
 			bodies[i].style.transform = `rotate(${bodies[i].orientation}deg)`;
 		}
@@ -165,7 +163,7 @@ function run() {
 		bodies[i].style.left = pagepos.x - (bodies[i].clientWidth / 2);
 		bodies[i].style.top = pagepos.y - (bodies[i].clientHeight / 2);
 
-		$(`#${name}velocity`).value = bodies[i].velocity.toString(VELOCITY_DISPLAY_CONFIG);
+		$(`#${bodies[i].innerText}velocity`).value = bodies[i].velocity.toString(VELOCITY_DISPLAY_CONFIG);
 	}
 
 	//framecount++;
@@ -173,42 +171,42 @@ function run() {
 }
 
 function step(deltatime, gcdt) {
-	let prevpositions = {};
-	for (let i in bodies) {
-		prevpositions[i] = bodies[i].position.toPagePos();
-	}
-
 	for (let i in bodies) {
 		for (let j in bodies) {
 			if (i >= j) {
 				continue;
 			}
 
-			let separation = Math.sqrt(Math.pow(bodies[i].position.x - bodies[j].position.x, 2) + Math.pow(bodies[i].position.y - bodies[j].position.y, 2));
-			let grav_accel = bodies[i].mass * bodies[j].mass / Math.pow(separation, 2) * gcdt;
-			let radians = bodies[i].position.angleRadians(bodies[j].position);
-			bodies[i].velocity.x += grav_accel / bodies[i].mass * Math.cos(radians);
-			bodies[i].velocity.y += grav_accel / bodies[i].mass * -Math.sin(radians);
-			bodies[j].velocity.x -= grav_accel / bodies[j].mass * Math.cos(radians);
-			bodies[j].velocity.y -= grav_accel / bodies[j].mass * -Math.sin(radians);
+			let separation_x = bodies[i].position.x - bodies[j].position.x;
+			let separation_y = bodies[i].position.y - bodies[j].position.y;
+			let separation = Math.sqrt(separation_x * separation_x + separation_y * separation_y);
+			let grav_accel = bodies[i].mass * bodies[j].mass / (separation * separation) * gcdt;
+			let dir_x = separation_x / separation;
+			let dir_y = separation_y / separation;
+			bodies[i].velocity.x -= grav_accel / bodies[i].mass * dir_x;
+			bodies[i].velocity.y -= grav_accel / bodies[i].mass * dir_y;
+			bodies[j].velocity.x += grav_accel / bodies[j].mass * dir_x;
+			bodies[j].velocity.y += grav_accel / bodies[j].mass * dir_y;
 		}
 	}
 
 	for (let i in bodies) {
-		bodies[i].position.addTo(bodies[i].velocity.mult(deltatime));
-	}
-
-	if (STROKE) {
-		for (let i in bodies) {
-			let pagepos = bodies[i].position.toPagePos();
+		if (STROKE) {
+			pagepos = bodies[i].position.toPagePos();
 			canvasctx.beginPath();
-			canvasctx.moveTo(prevpositions[i].x, prevpositions[i].y);
+			canvasctx.moveTo(pagepos.x, pagepos.y);
+		}
+
+		bodies[i].position.addTo(bodies[i].velocity.mult(deltatime));
+
+		if (STROKE) {
 			if (bodies[i] == iss && arrowUp) {
-				canvasctx.strokeStyle = `rgba(255, 0, 0, 1)`;
+				canvasctx.strokeStyle = 'rgba(255, 0, 0, 1)';
 			}
 			else {
-				canvasctx.strokeStyle = `rgba(0, 0, 0, 0.7)`;
+				canvasctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
 			}
+			pagepos = bodies[i].position.toPagePos();
 			canvasctx.lineTo(pagepos.x, pagepos.y);
 			canvasctx.stroke();
 		}
@@ -224,7 +222,7 @@ function scenario2() {
 
 	$("#timeperstepinput").value = '3';
 	$("#stepsperruninput").value = '25';
-	$("#accelinput").value = '1';
+	$("#thrustinput").value = '1';
 
 	sun.position = new Cart2(0, 0);
 	sun.velocity = new Cart2(0, 0);
@@ -283,9 +281,7 @@ function addBody(config) {
 }
 
 let GravityConstant = 6.6742e-11;
-let FPSINDEPENDENT = false;
 let STROKE = true;
-let FPS = 30;
 let VELOCITY_DISPLAY_CONFIG = {round: true, total: true};
 
 let sun = $("#Sbody");
@@ -296,7 +292,7 @@ let timeperstepfield = $("#timeperstepinput");
 let canvasctx = $("canvas").getContext('2d');
 let clearstrokebtn = $("#clearstroke");
 let stepsperrunfield = $("#stepsperruninput");
-let accelfield = $("#accelinput");
+let thrustfield = $("#thrustinput");
 
 let arrowUp = false;
 let arrowLeft = false;
