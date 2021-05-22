@@ -1,3 +1,4 @@
+// TODO pre-compute/memoize mass-pairs*GravityConstant to speedup calculation?
 function $(q) {
 	return document.querySelector(q);
 }
@@ -24,7 +25,6 @@ function saveGame() {
 		spr: stepsperrunfield.value,
 		scale: scale,
 		Aaccel: accelfield.value,
-		fixedSun: fixedSun,
 		bodies: [],
 	};
 
@@ -58,7 +58,6 @@ function loadGame(data) {
 	stepsperrunfield.value = data.spr;
 	$("#scaleinput").value = data.scale;
 	accelfield.value = data.Aaccel;
-	fixedSun = data.fixedSun;
 
 	if (bodies.length > data.bodies.length) {
 		alert('Cannot fully load game data: removing bodies not yet supported and your local game already has more than are in the save.');
@@ -150,9 +149,13 @@ function run() {
 	}
 
 	stepsperrun = parseFloat(stepsperrunfield.value);
+	STROKE = false;
+	let t = performance.now();
 	for (let i = 0; i < stepsperrun; i++) {
-		step();
+		step(10 * parseFloat(timeperstepfield.value));
 	}
+	let t2 = performance.now();
+	console.log('Step took', (t2-t)/stepsperrun, 'ms (measured across', stepsperrun, 'steps');
 
 	for (let i in bodies) {
 		let name = bodies[i].innerText;
@@ -172,9 +175,7 @@ function run() {
 	requestAnimationFrame(run);
 }
 
-function step() {
-	let deltatime = 10 * parseFloat(timeperstepfield.value);
-
+function step(deltatime) {
 	let prevpositions = {};
 	for (let i in bodies) {
 		prevpositions[i] = bodies[i].position.toPagePos();
@@ -182,32 +183,15 @@ function step() {
 
 	for (let i in bodies) {
 		for (let j in bodies) {
-			if (i >= j) {
-				// compute every body pair once
+			if (i == j) {
 				continue;
 			}
 
-			if (fixedSun && bodies[i] == sun) {
-				continue;
-			}
-
-			let separation = bodies[i].position.sub(bodies[j].position).abs();
-
-			let masses = bodies[i].mass * bodies[j].mass;
-			let grav_accel = GravityConstant * (masses / Math.pow(separation, 2)) * deltatime;
-			let degrees = bodies[i].position.angle(bodies[j].position);
-			bodies[i].velocity.addTo(new Cart2(lengthdir_x(grav_accel / bodies[i].mass, degrees), lengthdir_y(grav_accel / bodies[i].mass, degrees)));
-			degrees += 180;
-			bodies[j].velocity.addTo(new Cart2(lengthdir_x(grav_accel / bodies[j].mass, degrees), lengthdir_y(grav_accel / bodies[j].mass, degrees)));
-
-			if ( ! window.first || window.first < 10) {
-				console.log('computing', bodies[i].innerText, bodies[j].innerText, new Cart2(lengthdir_x(grav_accel / bodies[i].mass, degrees), lengthdir_y(grav_accel / bodies[i].mass, degrees)), new Cart2(lengthdir_x(grav_accel / bodies[j].mass, degrees), lengthdir_y(grav_accel / bodies[j].mass, degrees)));
-			}
+			let separation = bodies[i].position.sub(bodies[j].position);
+			bodies[i].velocity.addTo(separation.mult(deltatime * -GravityConstant * bodies[j].mass * separation.invSumCube()));
 		}
 	}
 
-	if ( ! window.first) window.first = 0;
-	window.first++;
 	for (let i in bodies) {
 		bodies[i].position.addTo(bodies[i].velocity.mult(deltatime));
 	}
@@ -240,21 +224,23 @@ function scenario2() {
 	$("#stepsperruninput").value = '25';
 	$("#accelinput").value = '1';
 
-	fixedSun = true;
 	sun.position = new Cart2(0, 0);
 	sun.velocity = new Cart2(0, 0);
 	$("#Smass").value = '5e5';
 
 	$("#Amass").value = '1';
 	$("#Avec").value = '0,0.0001';
+	$("#Apos").value = '200,0';
 
-	$("#Bpos").value = '0,-420';
-	$("#Bvec").value = '0.000172,0';
-	$("#Bmass").value = 6000;
-
-	$("#Cpos").value = '0,200';
-	$("#Cvec").value = '-0.00023,0';
+	$("#Cpos").value = '0,-420';
+	$("#Cvec").value = '0.000172,0';
 	$("#Cmass").value = 6000;
+
+	$("#Epos").value = '0,200';
+	$("#Evec").value = '-0.00023,0';
+	$("#Emass").value = 6000;
+
+	$("#scaleinput").value = 1;
 
 	resetSimulation();
 }
@@ -309,7 +295,6 @@ let canvasctx = $("canvas").getContext('2d');
 let clearstrokebtn = $("#clearstroke");
 let stepsperrunfield = $("#stepsperruninput");
 let accelfield = $("#accelinput");
-let fixedSun = false;
 
 let arrowUp = false;
 let arrowLeft = false;
