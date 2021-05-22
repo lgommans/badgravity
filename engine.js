@@ -148,14 +148,11 @@ function run() {
 		bodies[i].mass = parseFloat($(`#${name}mass`).value);
 	}
 
-	stepsperrun = parseFloat(stepsperrunfield.value);
-	STROKE = false;
-	let t = performance.now();
+	let deltatime = 10 * parseFloat(timeperstepfield.value);
+	let stepsperrun = parseFloat(stepsperrunfield.value);
 	for (let i = 0; i < stepsperrun; i++) {
-		step(10 * parseFloat(timeperstepfield.value));
+		step(deltatime, deltatime * GravityConstant);
 	}
-	let t2 = performance.now();
-	console.log('Step took', (t2-t)/stepsperrun, 'ms (measured across', stepsperrun, 'steps');
 
 	for (let i in bodies) {
 		let name = bodies[i].innerText;
@@ -175,7 +172,7 @@ function run() {
 	requestAnimationFrame(run);
 }
 
-function step(deltatime) {
+function step(deltatime, gcdt) {
 	let prevpositions = {};
 	for (let i in bodies) {
 		prevpositions[i] = bodies[i].position.toPagePos();
@@ -183,12 +180,14 @@ function step(deltatime) {
 
 	for (let i in bodies) {
 		for (let j in bodies) {
-			if (i == j) {
+			if (i >= j) {
 				continue;
 			}
 
 			let separation = bodies[i].position.sub(bodies[j].position);
-			bodies[i].velocity.addTo(separation.mult(deltatime * -GravityConstant * bodies[j].mass * separation.invSumCube()));
+			let precomputed = gcdt * separation.invSumCube();
+			bodies[i].velocity.addTo(separation.mult(bodies[j].mass * -precomputed));
+			bodies[j].velocity.addTo(separation.mult(bodies[i].mass * precomputed));
 		}
 	}
 
