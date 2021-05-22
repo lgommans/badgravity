@@ -61,6 +61,10 @@ function Cart2(x,y) {
 		return `${x},${y}`;
 	}
 
+	this.angleRadians = function(a) {
+		return radians = Math.atan2(this.y - a.y, a.x - this.x);
+	};
+
 	this.angle = function(a) {
 		let radians = Math.atan2(this.y - a.y, a.x - this.x);
 		let degrees = (radians * 180) / Math.PI;

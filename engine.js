@@ -184,10 +184,13 @@ function step(deltatime, gcdt) {
 				continue;
 			}
 
-			let separation = bodies[i].position.sub(bodies[j].position);
-			let precomputed = gcdt * separation.invSumCube();
-			bodies[i].velocity.addTo(separation.mult(bodies[j].mass * -precomputed));
-			bodies[j].velocity.addTo(separation.mult(bodies[i].mass * precomputed));
+			let separation = Math.sqrt(Math.pow(bodies[i].position.x - bodies[j].position.x, 2) + Math.pow(bodies[i].position.y - bodies[j].position.y, 2));
+			let grav_accel = bodies[i].mass * bodies[j].mass / Math.pow(separation, 2) * gcdt;
+			let radians = bodies[i].position.angleRadians(bodies[j].position);
+			bodies[i].velocity.x += grav_accel / bodies[i].mass * Math.cos(radians);
+			bodies[i].velocity.y += grav_accel / bodies[i].mass * -Math.sin(radians);
+			bodies[j].velocity.x -= grav_accel / bodies[j].mass * Math.cos(radians);
+			bodies[j].velocity.y -= grav_accel / bodies[j].mass * -Math.sin(radians);
 		}
 	}
 
