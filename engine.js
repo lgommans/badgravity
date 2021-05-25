@@ -1,4 +1,3 @@
-// TODO pre-compute/memoize mass-pairs*GravityConstant to speedup calculation?
 function $(q) {
 	return document.querySelector(q);
 }
@@ -16,7 +15,7 @@ function lengthdir_y(len, dir) {
 }
 
 Cart2.prototype.toPagePos = function() {
-	return new Cart2((innerWidth / 2) + (this.x / scale), (innerHeight / 2) + (this.y / scale));
+	return new Cart2(innerWidth / 2 + ((panx + this.x) / scale), innerHeight / 2 + ((pany + this.y) / scale));
 }
 
 function saveGame() {
@@ -25,6 +24,8 @@ function saveGame() {
 		spr: stepsperrunfield.value,
 		scale: scale,
 		Athrust: thrustfield.value,
+		panx: panx,
+		pany: pany,
 		bodies: [],
 	};
 
@@ -58,6 +59,10 @@ function loadGame(data) {
 	stepsperrunfield.value = data.spr;
 	$("#scaleinput").value = data.scale;
 	thrustfield.value = data.Athrust;
+	if (data.panx) {
+		panx = data.panx;
+		pany = data.pany;
+	}
 
 	if (bodies.length > data.bodies.length) {
 		alert('Cannot fully load game data: removing bodies not yet supported and your local game already has more than are in the save.');
@@ -119,6 +124,8 @@ function resetSimulation() {
 	$("canvas").width = innerWidth;
 	$("canvas").height = innerHeight;
 	scale = parseFloat($("#scaleinput").value);
+	panx = 0;
+	pany = 0;
 
 	for (let i in bodies) {
 		let name = bodies[i].innerText;
@@ -128,6 +135,13 @@ function resetSimulation() {
 }
 
 function run() {
+	if (centerZoomTimeout > 0) {
+		centerZoomTimeout -= 1;
+		if (centerZoomTimeout == 0) {
+			$("#centerzoom").style.display = 'none';
+		}
+	}
+
 	let thrust = 0;
 	if (arrowUp) {
 		thrust = parseFloat(thrustfield.value);
@@ -145,6 +159,10 @@ function run() {
 
 	for (let i in bodies) {
 		bodies[i].mass = parseFloat($(`#${bodies[i].innerText}mass`).value);
+	}
+
+	if (mouseDown) {
+		applyPan(mouseX, mouseY);
 	}
 
 	let deltatime = 10 * parseFloat(timeperstepfield.value);
@@ -198,6 +216,9 @@ function step(deltatime, gcdt) {
 		}
 
 		bodies[i].position.addTo(bodies[i].velocity.mult(deltatime));
+	panx = -focusBody.position.x;
+	pany = -focusBody.position.y;
+
 
 		if (STROKE) {
 			if (bodies[i] == iss && arrowUp) {
@@ -276,13 +297,26 @@ function addBody(config) {
 	tmpcontrol.innerHTML = `${newbody.innerText} speed=<input readonly type=text id=${newbody.innerText}velocity>`;
 	$("#bodiesspeeds").appendChild(tmpcontrol);
 
+	newbody.onclick = function(ev) {
+		focusBody = ev.target;
+	};
+
 	$("#bodies").appendChild(newbody);
 	bodies.push(newbody);
+}
+
+function applyPan(mouseX, mouseY) {
+	panx += (mouseX - prevMouseX) * scale;
+	pany += (mouseY - prevMouseY) * scale;
+	prevMouseX = mouseX;
+	prevMouseY = mouseY;
 }
 
 let GravityConstant = 6.6742e-11;
 let STROKE = true;
 let VELOCITY_DISPLAY_CONFIG = {round: true, total: true};
+let ZOOMSPEED = 2;
+let ZOOM_ANIM_DURATION = 6;
 
 let sun = $("#Sbody");
 let earth = $("#Ebody");
@@ -293,10 +327,7 @@ let canvasctx = $("canvas").getContext('2d');
 let clearstrokebtn = $("#clearstroke");
 let stepsperrunfield = $("#stepsperruninput");
 let thrustfield = $("#thrustinput");
-
-let arrowUp = false;
-let arrowLeft = false;
-let arrowRight = false;
+let centerzoomobj = $("#centerzoom");
 
 $("#restartbtn").onclick = resetSimulation;
 
@@ -342,15 +373,71 @@ document.onkeyup = function(ev) {
 };
 
 document.onblur = function(ev) {
-	let arrowUp = false;
-	let arrowLeft = false;
-	let arrowRight = false;
+	arrowUp = false;
+	arrowLeft = false;
+	arrowRight = false;
+	mouseDown = false;
 };
 
 document.onmousemove = function(ev) {
 	mouseX = ev.clientX;
 	mouseY = ev.clientY;
 };
+
+$("canvas").onmousedown = function(ev) {
+	mouseX = ev.clientX;
+	mouseY = ev.clientY;
+	prevMouseX = mouseX;
+	prevMouseY = mouseY;
+	mouseDown = true;
+};
+
+document.onmouseup = function(ev) {
+	if (mouseDown) {
+		applyPan(ev.clientX, ev.clientY);
+	}
+	mouseDown = false;
+};
+
+document.addEventListener("wheel", function(ev) {
+	let newscale;
+	if (ev.deltaY > 0) { 
+		newscale = scale / ZOOMSPEED;
+	}
+	else if (ev.deltaY < 0) {
+		newscale = scale * ZOOMSPEED;
+	}
+	else {
+		// horizontal scroll was triggered maybe?
+		return;
+	}
+
+	centerzoomobj.innerText = 'x';
+	centerzoomobj.style.display = 'block';
+	centerzoomobj.style.left = `calc(50% - ${centerzoomobj.offsetWidth / 2}px)`;
+	centerzoomobj.style.top = `calc(50% - ${centerzoomobj.offsetHeight / 2}px)`;
+	centerZoomTimeout = ZOOM_ANIM_DURATION;
+
+	let newscalestr = parseFloat(newscale).toExponential(0).replace('+', '');
+	$("#scaleinput").value = newscalestr;
+	newscale = parseFloat(newscale);
+
+	/* TODO see if this works now that the other zoom issue is resolved
+	let numPixelsThatWillDropOffTheSide = (innerWidth / scale) - (innerWidth / newscale);
+	let ratioToOneSide = (ev.clientX - (innerWidth / 2)) / innerWidth;
+	panx += numPixelsThatWillDropOffTheSide * ratioToOneSide;
+
+	let numPixelsThatWillDropOffTheTopOrBottom = (innerHeight / scale) - (innerHeight / newscale);
+	let ratioToTopOrBottom = (ev.clientY - (innerHeight / 2)) / innerHeight;
+	pany += numPixelsThatWillDropOffTheTopOrBottom * ratioToTopOrBottom;*/
+
+	scale = newscale;
+
+	ev.preventDefault();
+},
+{
+	passive: false,
+});
 
 $("#scenario2btn").onclick = scenario2;
 
@@ -361,10 +448,19 @@ $("#addbodybtn").onclick = function() {
 	});
 };
 
-let bodies = [sun, earth, iss];
+let arrowUp = false;
+let arrowLeft = false;
+let arrowRight = false;
+let mouseDown = false;
+let prevMouseX = 0;
+let prevMouseY = 0;
 let mouseX = 0;
 let mouseY = 0;
 let scale = 1e9;
+let panx = 0;
+let pany = 0;
+let focusBody = sun;
+let centerZoomTimeout = 0;
 
 /*
 let framecount = 0;
@@ -374,6 +470,14 @@ function getfps() {
 }
 setInterval(getfps, 1000);
 */
+
+let bodies = [sun, earth, iss];
+
+for (let i in bodies) {
+	bodies[i].onclick = function(ev) {
+		focusBody = ev.target;
+	};
+}
 
 sun.innerText = 'S';
 earth.innerText = 'E';

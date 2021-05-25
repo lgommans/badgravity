@@ -1,13 +1,13 @@
 <meta charset='utf-8'>
 <title>Bad Gravity</title>
-<!-- Parts taken from https://arachnoid.com/orbital_dynamics/resources/physics_engine.js -->
+<!-- Cart2.js adapted from https://arachnoid.com/orbital_dynamics/resources/physics_engine.js -->
 <!-- Therefore the license is GNU General Public License version 2 or (at your option) any later version. -->
-<!-- Gravity calculations Copyright (C) 2013, Paul Lutus -->
 
 <style>
 	body {
 		margin: 0;
 		padding: 0;
+		font-family: sans-serif;
 	}
 	div, canvas {
 		position: absolute;
@@ -42,8 +42,9 @@
 		margin-top: 4px;
 		line-height: 2.1;
 	}
-	#gravitywell {
-		font-weight: bold;
+	#centerzoom {
+		display: none;
+		position: absolute;
 	}
 	#timeperstepinput, #runsperstepinput {
 		width: 50px;
@@ -57,6 +58,7 @@
 	There are no third-party scripts, cookies, trackers, or any such things here.
 </noscript>
 <canvas></canvas>
+<div id=centerzoom>o</div>
 <div id=bodies>
 	<div id=Sbody></div>
 	<div id=Ebody></div>
