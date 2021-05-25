@@ -208,29 +208,38 @@ function step(deltatime, gcdt) {
 		}
 	}
 
+	let strokes = [];
+
 	for (let i in bodies) {
 		if (STROKE) {
-			pagepos = bodies[i].position.toPagePos();
-			canvasctx.beginPath();
-			canvasctx.moveTo(pagepos.x, pagepos.y);
+			strokes.push([bodies[i], new Cart2(bodies[i].position)]);
 		}
-
 		bodies[i].position.addTo(bodies[i].velocity.mult(deltatime));
+		if (STROKE) {
+			strokes[strokes.length - 1].push(new Cart2(bodies[i].position));
+		}
+	}
+
+	let prevpanx = panx;
+	let prevpany = pany;
 	panx = -focusBody.position.x;
 	pany = -focusBody.position.y;
+	let pand = new Cart2(prevpanx - panx, prevpany - pany);
 
-
-		if (STROKE) {
-			if (bodies[i] == iss && arrowUp) {
-				canvasctx.strokeStyle = 'rgba(255, 0, 0, 1)';
-			}
-			else {
-				canvasctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-			}
-			pagepos = bodies[i].position.toPagePos();
-			canvasctx.lineTo(pagepos.x, pagepos.y);
-			canvasctx.stroke();
+	for (let i in strokes) {
+		canvasctx.beginPath();
+		strokes[i][1].addTo(pand);
+		let pp = strokes[i][1].toPagePos();
+		canvasctx.moveTo(pp.x, pp.y);
+		if (strokes[i][0] == iss && arrowUp) {
+			canvasctx.strokeStyle = 'rgba(255, 0, 0, 1)';
 		}
+		else {
+			canvasctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+		}
+		pp = strokes[i][2].toPagePos();
+		canvasctx.lineTo(pp.x, pp.y);
+		canvasctx.stroke();
 	}
 }
 
