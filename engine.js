@@ -1,3 +1,6 @@
+// TODO features: better controls (hide and show + groupings), future path calculation, maybe a constellation browser and/or challenge setups with also some tutorial mode
+// TODO under the hood: saving/loading of bodies (mainly by allowing to remove/rename bodies and figuring something for cvec/cpos that are currently unused), simplify strokes to rerender
+// TODO meta: put it on a version control for people to contribute more easily if they wish
 function $(q) {
 	return document.querySelector(q);
 }
@@ -123,7 +126,6 @@ function shoottowardsmouse() {
 function resetSimulation() {
 	$("canvas").width = innerWidth;
 	$("canvas").height = innerHeight;
-	scale = parseFloat($("#scaleinput").value);
 	panx = 0;
 	pany = 0;
 
@@ -135,10 +137,22 @@ function resetSimulation() {
 }
 
 function run() {
-	if (centerZoomTimeout > 0) {
-		centerZoomTimeout -= 1;
+	rerender_strokes = $("#rerenderinput").checked;
+	if (centerZoomTimeout != 0) {
+		if (centerZoomTimeout > 0) {
+			centerZoomTimeout -= 1;
+			$("#centerzoom").style.fontSize = (centerZoomTimeout * CENTERZOOMSCALER).toString() + 'pt';
+		}
+		else {
+			centerZoomTimeout += 1;
+			$("#centerzoom").style.fontSize = ((ZOOM_ANIM_DURATION + centerZoomTimeout) * CENTERZOOMSCALER).toString() + 'pt';
+		}
 		if (centerZoomTimeout == 0) {
 			$("#centerzoom").style.display = 'none';
+		}
+		else {
+			centerzoomobj.style.left = `calc(50% - ${centerzoomobj.offsetWidth / 2}px)`;
+			centerzoomobj.style.top = `calc(50% - ${centerzoomobj.offsetHeight / 2}px)`;
 		}
 	}
 
@@ -172,19 +186,9 @@ function run() {
 		step(deltatime, deltatime * GravityConstant);
 	}
 
-	for (let i in bodies) {
-		if (bodies[i].orientation !== undefined) {
-			bodies[i].style.transform = `rotate(${bodies[i].orientation}deg)`;
-		}
+	render();
 
-		let pagepos = bodies[i].position.toPagePos();
-		bodies[i].style.left = pagepos.x - (bodies[i].clientWidth / 2);
-		bodies[i].style.top = pagepos.y - (bodies[i].clientHeight / 2);
-
-		$(`#${bodies[i].innerText}velocity`).value = bodies[i].velocity.toString(VELOCITY_DISPLAY_CONFIG);
-	}
-
-	//framecount++;
+	framecount++;
 	requestAnimationFrame(run);
 }
 
@@ -208,39 +212,88 @@ function step(deltatime, gcdt) {
 		}
 	}
 
-	let strokes = [];
+	tmpstrokes = [];
 
 	for (let i in bodies) {
-		if (STROKE) {
-			strokes.push([bodies[i], new Cart2(bodies[i].position)]);
-		}
+		let startPos = new Cart2(bodies[i].position);
 		bodies[i].position.addTo(bodies[i].velocity.mult(deltatime));
 		if (STROKE) {
-			strokes[strokes.length - 1].push(new Cart2(bodies[i].position));
+			tmpstrokes.push({
+				startPos: startPos,
+				endPos: new Cart2(bodies[i].position),
+				boosting: bodies[i] == iss && arrowUp,
+			});
 		}
 	}
 
-	let prevpanx = panx;
-	let prevpany = pany;
-	panx = -focusBody.position.x;
-	pany = -focusBody.position.y;
-	let pand = new Cart2(prevpanx - panx, prevpany - pany);
+	if (rerender_strokes) {
+		strokes.push(...tmpstrokes);
+	}
+	else {
+		let pan_difference = null;
+		if (focusBody) {
+			pan_difference = new Cart2(panx - -focusBody.position.x, pany - -focusBody.position.y);
+			panx = -focusBody.position.x;
+			pany = -focusBody.position.y;
+		}
+
+		renderStrokes(tmpstrokes, pan_difference);
+	}
+}
+
+function render() {
+	if (focusBody) {
+		panx = -focusBody.position.x;
+		pany = -focusBody.position.y;
+	}
+
+	for (let i in bodies) {
+		if (bodies[i].orientation !== undefined) {
+			bodies[i].style.transform = `rotate(${bodies[i].orientation}deg)`;
+		}
+
+		let pagepos = bodies[i].position.toPagePos();
+		bodies[i].style.left = pagepos.x - (bodies[i].clientWidth / 2);
+		bodies[i].style.top = pagepos.y - (bodies[i].clientHeight / 2);
+
+		$(`#${bodies[i].innerText}velocity`).value = bodies[i].velocity.toString(VELOCITY_DISPLAY_CONFIG);
+	}
+
+	if (rerender_strokes && framecount % rerenderEvery == 0) {
+		canvasctx.clearRect(0, 0, $("canvas").width, $("canvas").height);
+
+		if (strokes.length > MAX_STROKES) {
+			strokes.splice(0, strokes.length - MAX_STROKES);
+		}
+
+		renderStrokes(strokes);
+	}
+}
+
+function renderStrokes(strokes, offset) {
+	canvasctx.beginPath();
+	canvasctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+	let nonblack = false;
 
 	for (let i in strokes) {
-		canvasctx.beginPath();
-		strokes[i][1].addTo(pand);
-		let pp = strokes[i][1].toPagePos();
-		canvasctx.moveTo(pp.x, pp.y);
-		if (strokes[i][0] == iss && arrowUp) {
+		if (strokes[i].boosting) {
+			canvasctx.stroke();
 			canvasctx.strokeStyle = 'rgba(255, 0, 0, 1)';
+			canvasctx.beginPath();
+			nonblack = true;
 		}
-		else {
+		else if (nonblack) {
+			canvasctx.stroke();
 			canvasctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+			canvasctx.beginPath();
 		}
-		pp = strokes[i][2].toPagePos();
-		canvasctx.lineTo(pp.x, pp.y);
-		canvasctx.stroke();
+		if (offset) {
+			strokes[i].startPos.addTo(offset);
+		}
+		canvasctx.moveTo(strokes[i].startPos.toPagePos().x, strokes[i].startPos.toPagePos().y);
+		canvasctx.lineTo(strokes[i].endPos.toPagePos().x, strokes[i].endPos.toPagePos().y);
 	}
+	canvasctx.stroke();
 }
 
 function scenario2() {
@@ -319,13 +372,16 @@ function applyPan(mouseX, mouseY) {
 	pany += (mouseY - prevMouseY) * scale;
 	prevMouseX = mouseX;
 	prevMouseY = mouseY;
+	focusBody = null;
 }
 
 let GravityConstant = 6.6742e-11;
 let STROKE = true;
+let MAX_STROKES = 10e3; // applies only if rerender_strokes is set
 let VELOCITY_DISPLAY_CONFIG = {round: true, total: true};
 let ZOOMSPEED = 2;
-let ZOOM_ANIM_DURATION = 6;
+let ZOOM_ANIM_DURATION = 10;
+let CENTERZOOMSCALER = 4;
 
 let sun = $("#Sbody");
 let earth = $("#Ebody");
@@ -412,20 +468,19 @@ document.addEventListener("wheel", function(ev) {
 	let newscale;
 	if (ev.deltaY > 0) { 
 		newscale = scale / ZOOMSPEED;
+		centerZoomTimeout = -ZOOM_ANIM_DURATION;
 	}
 	else if (ev.deltaY < 0) {
 		newscale = scale * ZOOMSPEED;
+		centerZoomTimeout = ZOOM_ANIM_DURATION;
 	}
 	else {
 		// horizontal scroll was triggered maybe?
 		return;
 	}
 
-	centerzoomobj.innerText = 'x';
+	centerzoomobj.innerText = '0';
 	centerzoomobj.style.display = 'block';
-	centerzoomobj.style.left = `calc(50% - ${centerzoomobj.offsetWidth / 2}px)`;
-	centerzoomobj.style.top = `calc(50% - ${centerzoomobj.offsetHeight / 2}px)`;
-	centerZoomTimeout = ZOOM_ANIM_DURATION;
 
 	let newscalestr = parseFloat(newscale).toExponential(0).replace('+', '');
 	$("#scaleinput").value = newscalestr;
@@ -470,9 +525,12 @@ let panx = 0;
 let pany = 0;
 let focusBody = sun;
 let centerZoomTimeout = 0;
+let rerender_strokes = false;
+let rerenderEvery = 2;
+let strokes = [];
+let framecount = 0;
 
 /*
-let framecount = 0;
 let starttime = new Date().getTime();
 function getfps() {
 	console.log(framecount / ((new Date().getTime() - starttime) / 1000));
