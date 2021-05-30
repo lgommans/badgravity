@@ -119,8 +119,10 @@ function shoottowardsmouse() {
 }
 
 function resetSimulation() {
-	$("canvas").width = innerWidth;
-	$("canvas").height = innerHeight;
+	$("#predictioncanvas").width = innerWidth;
+	$("#predictioncanvas").height = innerHeight;
+	$("#trailscanvas").width = innerWidth;
+	$("#trailscanvas").height = innerHeight;
 	panx = 0;
 	pany = 0;
 
@@ -178,7 +180,35 @@ function run() {
 	let stepsperrun = parseFloat(stepsperrunfield.value);
 	for (let i = 0; i < stepsperrun; i++) {
 		bodies['A'].velocity.addTo(new Cart2(lengthdir_x(thrust * deltatime / bodies['A'].mass, bodies['A'].orientation - 90), lengthdir_y(thrust * deltatime / bodies['A'].mass, bodies['A'].orientation + 90)));
-		step(deltatime, deltatime * GravityConstant);
+		step(bodies, deltatime);
+
+		tmpstrokes = [];
+
+		for (let i in bodies) {
+			let startPos = new Cart2(bodies[i].position);
+			bodies[i].position.addTo(bodies[i].velocity.mult(deltatime));
+			if (STROKE) {
+				tmpstrokes.push({
+					startPos: startPos,
+					endPos: new Cart2(bodies[i].position),
+					boosting: bodies[i] == bodies['A'] && arrowUp,
+				});
+			}
+		}
+
+		if (rerender_strokes) {
+			strokes.push(...tmpstrokes);
+		}
+		else {
+			let pan_difference = null;
+			if (focusBody) {
+				pan_difference = new Cart2(panx - -focusBody.position.x, pany - -focusBody.position.y);
+				panx = -focusBody.position.x;
+				pany = -focusBody.position.y;
+			}
+
+			renderStrokes(tmpstrokes, pan_difference);
+		}
 	}
 
 	render();
@@ -187,7 +217,10 @@ function run() {
 	requestAnimationFrame(run);
 }
 
-function step(deltatime, gcdt) {
+function step(bodies, deltatime) {
+	// calculates the attraction force between each body and updates the velocity vector, but not the position
+
+	let gcdt = deltatime * GravityConstant;
 	for (let i in bodies) {
 		for (let j in bodies) {
 			if (i >= j) {
@@ -205,34 +238,6 @@ function step(deltatime, gcdt) {
 			bodies[j].velocity.x += grav_accel / bodies[j].mass * dir_x;
 			bodies[j].velocity.y += grav_accel / bodies[j].mass * dir_y;
 		}
-	}
-
-	tmpstrokes = [];
-
-	for (let i in bodies) {
-		let startPos = new Cart2(bodies[i].position);
-		bodies[i].position.addTo(bodies[i].velocity.mult(deltatime));
-		if (STROKE) {
-			tmpstrokes.push({
-				startPos: startPos,
-				endPos: new Cart2(bodies[i].position),
-				boosting: bodies[i] == bodies['A'] && arrowUp,
-			});
-		}
-	}
-
-	if (rerender_strokes) {
-		strokes.push(...tmpstrokes);
-	}
-	else {
-		let pan_difference = null;
-		if (focusBody) {
-			pan_difference = new Cart2(panx - -focusBody.position.x, pany - -focusBody.position.y);
-			panx = -focusBody.position.x;
-			pany = -focusBody.position.y;
-		}
-
-		renderStrokes(tmpstrokes, pan_difference);
 	}
 }
 
@@ -255,7 +260,7 @@ function render() {
 	}
 
 	if (rerender_strokes && framecount % rerenderEvery == 0) {
-		canvasctx.clearRect(0, 0, $("canvas").width, $("canvas").height);
+		trailscanvasctx.clearRect(0, 0, $("#trailscanvas").width, $("#trailscanvas").height);
 
 		if (strokes.length > MAX_STROKES) {
 			strokes.splice(0, strokes.length - MAX_STROKES);
@@ -263,33 +268,67 @@ function render() {
 
 		renderStrokes(strokes);
 	}
+
+	predictAndDraw();
 }
 
 function renderStrokes(strokes, offset) {
-	canvasctx.beginPath();
-	canvasctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+	trailscanvasctx.beginPath();
+	trailscanvasctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
 	let nonblack = false;
 
 	for (let i in strokes) {
 		if (strokes[i].boosting && ! nonblack) {
-			canvasctx.stroke();
-			canvasctx.strokeStyle = 'rgba(255, 0, 0, 1)';
-			canvasctx.beginPath();
+			trailscanvasctx.stroke();
+			trailscanvasctx.strokeStyle = 'rgba(255, 0, 0, 1)';
+			trailscanvasctx.beginPath();
 			nonblack = true;
 		}
 		else if ( ! strokes[i].boosting && nonblack) {
-			canvasctx.stroke();
-			canvasctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-			canvasctx.beginPath();
+			trailscanvasctx.stroke();
+			trailscanvasctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+			trailscanvasctx.beginPath();
 			nonblack = false;
 		}
 		if (offset) {
 			strokes[i].startPos.addTo(offset);
 		}
-		canvasctx.moveTo(strokes[i].startPos.toPagePos().x, strokes[i].startPos.toPagePos().y);
-		canvasctx.lineTo(strokes[i].endPos.toPagePos().x, strokes[i].endPos.toPagePos().y);
+		let spp = strokes[i].startPos.toPagePos();
+		let epp = strokes[i].endPos.toPagePos();
+		trailscanvasctx.moveTo(spp.x, spp.y);
+		trailscanvasctx.lineTo(epp.x, epp.y);
 	}
-	canvasctx.stroke();
+	trailscanvasctx.stroke();
+}
+
+function predictAndDraw() {
+	let dupbodies = {};
+	for (let i in bodies) {
+		dupbodies[i] = {
+			position: new Cart2(bodies[i].position),
+			velocity: new Cart2(bodies[i].velocity),
+			mass: bodies[i].mass,
+		};
+	}
+
+	let deltatime = 500 * parseFloat(timeperstepfield.value);
+	let predictsteps = parseFloat(stepsperrunfield.value) * 20;
+	predictioncanvasctx.beginPath();
+	predictioncanvasctx.clearRect(0, 0, $("#predictioncanvas").width, $("#predictioncanvas").height);
+	predictioncanvasctx.strokeStyle = 'rgba(160, 160, 255, 0.8)';
+	for (let i = 0; i < predictsteps; i++) {
+		step(dupbodies, deltatime);
+		for (let i in dupbodies) {
+			let pp = dupbodies[i].position.toPagePos();
+			predictioncanvasctx.moveTo(pp.x, pp.y);
+
+			dupbodies[i].position.addTo(dupbodies[i].velocity.mult(deltatime));
+
+			pp = dupbodies[i].position.toPagePos();
+			predictioncanvasctx.lineTo(pp.x, pp.y);
+		}
+	}
+	predictioncanvasctx.stroke();
 }
 
 function scenario1() {
@@ -456,7 +495,8 @@ let ZOOM_ANIM_DURATION = 10;
 let CENTERZOOMSCALER = 4;
 
 let timeperstepfield = $("#timeperstepinput");
-let canvasctx = $("canvas").getContext('2d');
+let trailscanvasctx = $("#trailscanvas").getContext('2d');
+let predictioncanvasctx = $("#predictioncanvas").getContext('2d');
 let clearstrokebtn = $("#clearstroke");
 let stepsperrunfield = $("#stepsperruninput");
 let thrustfield = $("#thrustinput");
@@ -465,7 +505,7 @@ let centerzoomobj = $("#centerzoom");
 $("#restartbtn").onclick = resetSimulation;
 
 clearstrokebtn.onclick = function() {
-	canvasctx.clearRect(0, 0, $("canvas").width, $("canvas").height)
+	trailscanvasctx.clearRect(0, 0, $("#trailscanvas").width, $("#trailscanvas").height)
 };
 
 document.onkeydown = function(ev) {
@@ -517,7 +557,7 @@ document.onmousemove = function(ev) {
 	mouseY = ev.clientY;
 };
 
-$("canvas").onmousedown = function(ev) {
+$("#predictioncanvas").onmousedown = function(ev) {
 	mouseX = ev.clientX;
 	mouseY = ev.clientY;
 	prevMouseX = mouseX;
