@@ -353,7 +353,7 @@ function scenario1() {
 }
 
 function scenario2() {
-	while (bodies.length < 4) {
+	while (Object.keys(bodies).length < 4) {
 		addBody();
 	}
 
@@ -369,9 +369,9 @@ function scenario2() {
 	$("#Avec").value = '0,0.0001';
 	$("#Apos").value = '200,0';
 
-	$("#Cpos").value = '0,-420';
-	$("#Cvec").value = '0.000172,0';
-	$("#Cmass").value = 6000;
+	$("#Bpos").value = '0,-420';
+	$("#Bvec").value = '0.000172,0';
+	$("#Bmass").value = 6000;
 
 	$("#Epos").value = '0,200';
 	$("#Evec").value = '-0.00023,0';
