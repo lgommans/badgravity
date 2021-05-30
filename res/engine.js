@@ -389,6 +389,11 @@ function addBody(config) {
 	let controlgroupCollapsedName = document.createElement('span');
 	controlgroupCollapsedName.innerText = newbody.name;
 	controlgroupCollapsedName.classList.add('collapsedLabel');
+	controlgroupCollapsedName.onclick = function(ev) {
+		if (ev.target == controlgroupCollapsedName) {
+			controlgroupCollapsedName.parentNode.classList.toggle('collapsed');
+		}
+	};
 	controlgroup.appendChild(controlgroupCollapsedName);
 
 	let tmpcontrol = document.createElement('label');
@@ -574,9 +579,6 @@ $("#addbodybtn").onclick = function() {
 		position: new Cart2(bodies['A'].position).addTo(new Cart2(20, 0)),
 	});
 };
-
-$("#simcontrols").classList.toggle('collapsed');
-$("#bodiescontrols").classList.toggle('collapsed');
 
 document.querySelectorAll(".collapseable").forEach(function(el) {
 	el.onclick = function(ev) {
