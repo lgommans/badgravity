@@ -1,12 +1,8 @@
-// TODO features: better controls (hide and show + groupings), future path calculation, maybe a constellation browser and/or challenge setups with also some tutorial mode
+// TODO features: future path calculation, maybe a constellation browser and/or challenge setups with also some tutorial mode
 // TODO under the hood: saving/loading of bodies (mainly by allowing to remove/rename bodies and figuring something for cvec/cpos that are currently unused), simplify strokes to rerender
 // TODO meta: put it on a version control for people to contribute more easily if they wish
 function $(q) {
 	return document.querySelector(q);
-}
-
-function time() {
-	return new Date().getTime();
 }
 
 function lengthdir_x(len, dir) {
@@ -35,10 +31,10 @@ function saveGame() {
 	for (let i in bodies) {
 		let b = bodies[i];
 		gamedata.bodies.push({
-			name: b.innerText,
-			spos: $(`#${b.innerText}pos`).value,
-			svec: $(`#${b.innerText}vec`).value,
-			mass: $(`#${b.innerText}mass`).value,
+			name: b.name,
+			spos: $(`#${b.name}pos`).value,
+			svec: $(`#${b.name}vec`).value,
+			mass: $(`#${b.name}mass`).value,
 			cpos: b.position.toString(),
 			cvec: b.velocity.toString(),
 		});
@@ -60,7 +56,6 @@ function loadGame(data) {
 
 	timeperstepfield.value = data.tps;
 	stepsperrunfield.value = data.spr;
-	$("#scaleinput").value = data.scale;
 	thrustfield.value = data.Athrust;
 	if (data.panx) {
 		panx = data.panx;
@@ -73,9 +68,9 @@ function loadGame(data) {
 		for (let i in bodies) {
 			bodies[i].position = new Cart2(-1e40, -1e40);
 			bodies[i].velocity = new Cart2(0, 0);
-			$(`#${bodies[i].innerText}vec`).value = '0,0';
-			$(`#${bodies[i].innerText}pos`).value = '-1e40,-1e40';
-			$(`#${bodies[i].innerText}mass`).value = '0';
+			$(`#${bodies[i].name}vec`).value = '0,0';
+			$(`#${bodies[i].name}pos`).value = '-1e40,-1e40';
+			$(`#${bodies[i].name}mass`).value = '0';
 		}
 	}
 
@@ -94,9 +89,9 @@ function loadGame(data) {
 
 				bodies[locali].position = new Cart2(b.cpos.x, b.cpos.y);
 				bodies[locali].velocity = new Cart2(b.cvec.x, b.cvec.y);
-				$(`#${bodies[locali].innerText}vec`).value = b.svec;
-				$(`#${bodies[locali].innerText}pos`).value = b.spos;
-				$(`#${bodies[locali].innerText}mass`).value = b.mass;
+				$(`#${bodies[locali].name}vec`).value = b.svec;
+				$(`#${bodies[locali].name}pos`).value = b.spos;
+				$(`#${bodies[locali].name}mass`).value = b.mass;
 
 				found = true;
 				break;
@@ -115,11 +110,11 @@ function shoottowardsmouse() {
 	let distance = 25e9; // create the object at this distance from A
 	let vel = 343 * 2; // speed at which you fire the shot, approximately mach 2
 
-	let degrees = $("#Abody").position.toPagePos().angle(new Cart2(mouseX, mouseY));
+	let degrees = bodies['A'].position.toPagePos().angle(new Cart2(mouseX, mouseY));
 	let config;
 	addBody(config = {
-		velocity: new Cart2($("#Abody").velocity).addTo(new Cart2(lengthdir_x(vel, degrees), lengthdir_y(vel, degrees))),
-		position: new Cart2($("#Abody").position).addTo(new Cart2(lengthdir_x(distance, degrees), lengthdir_y(distance, degrees))),
+		velocity: new Cart2(bodies['A'].velocity).addTo(new Cart2(lengthdir_x(vel, degrees), lengthdir_y(vel, degrees))),
+		position: new Cart2(bodies['A'].position).addTo(new Cart2(lengthdir_x(distance, degrees), lengthdir_y(distance, degrees))),
 	});
 }
 
@@ -130,7 +125,7 @@ function resetSimulation() {
 	pany = 0;
 
 	for (let i in bodies) {
-		let name = bodies[i].innerText;
+		let name = bodies[i].name;
 		bodies[i].position = new Cart2(parseFloat($(`#${name}pos`).value.split(',')[0]), parseFloat($(`#${name}pos`).value.split(',')[1]));
 		bodies[i].velocity = new Cart2(parseFloat($(`#${name}vec`).value.split(',')[0]), parseFloat($(`#${name}vec`).value.split(',')[1]));
 	}
@@ -159,20 +154,20 @@ function run() {
 	let thrust = 0;
 	if (arrowUp) {
 		thrust = parseFloat(thrustfield.value);
-		iss.classList.add('boosting');
+		bodies['A'].classList.add('boosting');
 	}
 	else {
-		iss.classList.remove('boosting');
+		bodies['A'].classList.remove('boosting');
 	}
 	if (arrowLeft) {
-		iss.orientation -= 4.5;
+		bodies['A'].orientation -= 4.5;
 	}
 	if (arrowRight) {
-		iss.orientation += 4.5;
+		bodies['A'].orientation += 4.5;
 	}
 
 	for (let i in bodies) {
-		bodies[i].mass = parseFloat($(`#${bodies[i].innerText}mass`).value);
+		bodies[i].mass = parseFloat($(`#${bodies[i].name}mass`).value);
 	}
 
 	if (mouseDown) {
@@ -182,7 +177,7 @@ function run() {
 	let deltatime = 10 * parseFloat(timeperstepfield.value);
 	let stepsperrun = parseFloat(stepsperrunfield.value);
 	for (let i = 0; i < stepsperrun; i++) {
-		iss.velocity.addTo(new Cart2(lengthdir_x(thrust * deltatime / iss.mass, iss.orientation - 90), lengthdir_y(thrust * deltatime / iss.mass, iss.orientation + 90)));
+		bodies['A'].velocity.addTo(new Cart2(lengthdir_x(thrust * deltatime / bodies['A'].mass, bodies['A'].orientation - 90), lengthdir_y(thrust * deltatime / bodies['A'].mass, bodies['A'].orientation + 90)));
 		step(deltatime, deltatime * GravityConstant);
 	}
 
@@ -221,7 +216,7 @@ function step(deltatime, gcdt) {
 			tmpstrokes.push({
 				startPos: startPos,
 				endPos: new Cart2(bodies[i].position),
-				boosting: bodies[i] == iss && arrowUp,
+				boosting: bodies[i] == bodies['A'] && arrowUp,
 			});
 		}
 	}
@@ -256,7 +251,7 @@ function render() {
 		bodies[i].style.left = pagepos.x - (bodies[i].clientWidth / 2);
 		bodies[i].style.top = pagepos.y - (bodies[i].clientHeight / 2);
 
-		$(`#${bodies[i].innerText}velocity`).value = bodies[i].velocity.toString(VELOCITY_DISPLAY_CONFIG);
+		$(`#${bodies[i].name}velocity`).value = bodies[i].velocity.toString(VELOCITY_DISPLAY_CONFIG);
 	}
 
 	if (rerender_strokes && framecount % rerenderEvery == 0) {
@@ -276,16 +271,17 @@ function renderStrokes(strokes, offset) {
 	let nonblack = false;
 
 	for (let i in strokes) {
-		if (strokes[i].boosting) {
+		if (strokes[i].boosting && ! nonblack) {
 			canvasctx.stroke();
 			canvasctx.strokeStyle = 'rgba(255, 0, 0, 1)';
 			canvasctx.beginPath();
 			nonblack = true;
 		}
-		else if (nonblack) {
+		else if ( ! strokes[i].boosting && nonblack) {
 			canvasctx.stroke();
 			canvasctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
 			canvasctx.beginPath();
+			nonblack = false;
 		}
 		if (offset) {
 			strokes[i].startPos.addTo(offset);
@@ -296,9 +292,28 @@ function renderStrokes(strokes, offset) {
 	canvasctx.stroke();
 }
 
-function scenario2() {
-	$("#bodies").style.fontSize = '0.65em';
+function scenario1() {
+	addBody({
+		name: 'A',
+		mass: '420e3',
+		position: new Cart2(150006838000, 0),
+		velocity: new Cart2(0, 37440),
+	});
+	addBody({
+		name: 'S',
+		mass: '19885e26',
+		position: new Cart2(0, 0),
+		velocity: new Cart2(0, 0),
+	});
+	addBody({
+		name: 'E',
+		mass: '5.972e24',
+		position: new Cart2(150e9, 0),
+		velocity: new Cart2(0, 29780),
+	});
+}
 
+function scenario2() {
 	while (bodies.length < 4) {
 		addBody();
 	}
@@ -307,8 +322,8 @@ function scenario2() {
 	$("#stepsperruninput").value = '25';
 	$("#thrustinput").value = '1';
 
-	sun.position = new Cart2(0, 0);
-	sun.velocity = new Cart2(0, 0);
+	bodies['S'].position = new Cart2(0, 0);
+	bodies['S'].velocity = new Cart2(0, 0);
 	$("#Smass").value = '5e5';
 
 	$("#Amass").value = '1';
@@ -323,9 +338,29 @@ function scenario2() {
 	$("#Evec").value = '-0.00023,0';
 	$("#Emass").value = 6000;
 
-	$("#scaleinput").value = 1;
+	scale = 1;
 
 	resetSimulation();
+}
+
+function getAvailableBodyName() {
+	let cc = 'B'.charCodeAt(0); // char code
+	while (true) {
+		let found = false;
+		let c = String.fromCharCode(cc);
+		for (let i in bodies) {
+			if (bodies[i].name == c) {
+				found = true;
+				break;
+			}
+		}
+		if ( ! found) {
+			return c;
+		}
+		else {
+			cc += 1;
+		}
+	}
 }
 
 function addBody(config) {
@@ -334,45 +369,77 @@ function addBody(config) {
 	}
 
 	let newbody = document.createElement('div');
-	newbody.innerText = config.name || String.fromCharCode('A'.charCodeAt(0) + bodies.length - 1);
-	newbody.id = newbody.innerText + 'body';
+	newbody.name = config.name || getAvailableBodyName();
 	newbody.mass = config.mass || 1;
-	newbody.velocity = config.velocity || new Cart2($("#Abody").velocity);
-	newbody.position = config.position || new Cart2($("#Abody").position).addTo(new Cart2(0, 10));
+	newbody.velocity = config.velocity || new Cart2(bodies['A'].velocity);
+	newbody.position = config.position || new Cart2(bodies['A'].position).addTo(new Cart2(0, 10));
+
+	newbody.innerText = newbody.name;
+	newbody.id = newbody.name + 'body';
+
+	let controlgroup = document.createElement('span');
+	controlgroup.id = 'controlgroup' + newbody.name;
+	controlgroup.classList.add('collapseable');
+	controlgroup.onclick = function(ev) {
+		if (ev.target == controlgroup) {
+			controlgroup.classList.toggle('collapsed');
+		}
+	};
+
+	let controlgroupCollapsedName = document.createElement('span');
+	controlgroupCollapsedName.innerText = newbody.name;
+	controlgroupCollapsedName.classList.add('collapsedLabel');
+	controlgroup.appendChild(controlgroupCollapsedName);
 
 	let tmpcontrol = document.createElement('label');
-	tmpcontrol.title = 'Mass of object. This value is applied immediately';
-	tmpcontrol.innerHTML = `${newbody.innerText} mass=<input type=number value=${newbody.mass} id=${newbody.innerText}mass>`;
-	$("#bodiescontrols").appendChild(tmpcontrol);
+	tmpcontrol.title = 'Mass of object in kg. This value is applied immediately';
+	tmpcontrol.innerHTML = `${newbody.name} mass=<input type=number value=${newbody.mass} id=${newbody.name}mass>`;
+	controlgroup.appendChild(tmpcontrol);
 
 	tmpcontrol = document.createElement('label');
-	tmpcontrol.title = 'Start position. This value is applied when you restart';
-	tmpcontrol.innerHTML = `${newbody.innerText} position=<input type=text value=${newbody.position.toString()} id=${newbody.innerText}pos>`;
-	$("#bodiescontrols").appendChild(tmpcontrol);
+	tmpcontrol.title = 'Start position in m. This value is applied when you restart';
+	tmpcontrol.innerHTML = `${newbody.name} position=<input type=text value=${newbody.position.toString()} id=${newbody.name}pos>`;
+	controlgroup.appendChild(tmpcontrol);
 
 	tmpcontrol = document.createElement('label');
-	tmpcontrol.title = 'Start speed. This value is applied when you restart';
-	tmpcontrol.innerHTML = `${newbody.innerText} vector=<input type=text value=${newbody.velocity.toString()} id=${newbody.innerText}vec>`;
-	$("#bodiescontrols").appendChild(tmpcontrol);
+	tmpcontrol.title = 'Start speed in m/s. This value is applied when you restart';
+	tmpcontrol.innerHTML = `${newbody.name} vector=<input type=text value=${newbody.velocity.toString()} id=${newbody.name}vec>`;
+	controlgroup.appendChild(tmpcontrol);
 
 	tmpcontrol = document.createElement('label');
-	tmpcontrol.innerHTML = `${newbody.innerText} speed=<input readonly type=text id=${newbody.innerText}velocity>`;
+	tmpcontrol.innerHTML = `${newbody.name} speed=<input readonly type=text id=${newbody.name}velocity>`;
 	$("#bodiesspeeds").appendChild(tmpcontrol);
+
+	newbody.mass = parseFloat(newbody.mass);
 
 	newbody.onclick = function(ev) {
 		focusBody = ev.target;
 	};
 
 	$("#bodies").appendChild(newbody);
-	bodies.push(newbody);
+	bodies[newbody.name] = newbody;
+	$("#bodiescontrols").appendChild(controlgroup)
 }
 
 function applyPan(mouseX, mouseY) {
+	if (mouseX == prevMouseX && mouseY == prevMouseY) {
+		return;
+	}
+
 	panx += (mouseX - prevMouseX) * scale;
 	pany += (mouseY - prevMouseY) * scale;
 	prevMouseX = mouseX;
 	prevMouseY = mouseY;
 	focusBody = null;
+}
+
+function getfps() {
+	console.log(framecount / ((performance.now() - starttime) / 1000));
+}
+
+function resetfps() {
+	starttime = performance.now();
+	framecount = 0;
 }
 
 let GravityConstant = 6.6742e-11;
@@ -382,10 +449,6 @@ let VELOCITY_DISPLAY_CONFIG = {round: true, total: true};
 let ZOOMSPEED = 2;
 let ZOOM_ANIM_DURATION = 10;
 let CENTERZOOMSCALER = 4;
-
-let sun = $("#Sbody");
-let earth = $("#Ebody");
-let iss = $("#Abody");
 
 let timeperstepfield = $("#timeperstepinput");
 let canvasctx = $("canvas").getContext('2d');
@@ -483,7 +546,7 @@ document.addEventListener("wheel", function(ev) {
 	centerzoomobj.style.display = 'block';
 
 	let newscalestr = parseFloat(newscale).toExponential(0).replace('+', '');
-	$("#scaleinput").value = newscalestr;
+	// TODO display the scale
 	newscale = parseFloat(newscale);
 
 	/* TODO see if this works now that the other zoom issue is resolved
@@ -507,10 +570,29 @@ $("#scenario2btn").onclick = scenario2;
 
 $("#addbodybtn").onclick = function() {
 	addBody({
-		velocity: new Cart2($("#Abody").velocity),
-		position: new Cart2($("#Abody").position).addTo(new Cart2(20, 0)),
+		velocity: new Cart2(bodies['A'].velocity),
+		position: new Cart2(bodies['A'].position).addTo(new Cart2(20, 0)),
 	});
 };
+
+$("#simcontrols").classList.toggle('collapsed');
+$("#bodiescontrols").classList.toggle('collapsed');
+
+document.querySelectorAll(".collapseable").forEach(function(el) {
+	el.onclick = function(ev) {
+		if (ev.target == el) {
+			el.classList.toggle('collapsed');
+		}
+	};
+});
+
+document.querySelectorAll(".collapsedLabel").forEach(function(el) {
+	el.onclick = function(ev) {
+		if (ev.target == el) {
+			el.parentNode.classList.toggle('collapsed');
+		}
+	};
+});
 
 let arrowUp = false;
 let arrowLeft = false;
@@ -523,36 +605,22 @@ let mouseY = 0;
 let scale = 1e9;
 let panx = 0;
 let pany = 0;
-let focusBody = sun;
+let focusBody = null;
 let centerZoomTimeout = 0;
 let rerender_strokes = false;
 let rerenderEvery = 2;
 let strokes = [];
 let framecount = 0;
+let starttime = performance.now();
 
-/*
-let starttime = new Date().getTime();
-function getfps() {
-	console.log(framecount / ((new Date().getTime() - starttime) / 1000));
-}
-setInterval(getfps, 1000);
-*/
-
-let bodies = [sun, earth, iss];
-
-for (let i in bodies) {
-	bodies[i].onclick = function(ev) {
-		focusBody = ev.target;
-	};
-}
-
-sun.innerText = 'S';
-earth.innerText = 'E';
-iss.innerText = 'A';
-iss.orientation = 0;
+let bodies = {};
 
 if (location.hash.length > 2) {
 	loadGame(unescape(location.hash.substring(1)));
+}
+else {
+	scenario1();
+	bodies['A'].orientation = 0;
 }
 
 resetSimulation();
