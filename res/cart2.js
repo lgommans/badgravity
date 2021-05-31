@@ -25,10 +25,6 @@ function Cart2(x,y) {
 		return this;
 	}
 
-	this.invSumCube = function() {
-		return Math.pow(this.x*this.x + this.y*this.y, -1.5);
-	}
-
 	this.abs = function() {
 		return Math.sqrt(this.x*this.x + this.y*this.y);
 	}
