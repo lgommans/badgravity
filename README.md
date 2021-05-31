@@ -1,8 +1,10 @@
 # Bad Gravity
 
-License: GPLv3, see `./LICENSE`
+An interactive simulator of n-body gravity and orbits.
 
 Demo: https://lucgommans.nl/p/badgravity/
+
+License: This is free software, licensed as GPLv3. See the `LICENSE` file.
 
 Contributions, bug reports, feature or customization requests, all welcome!
 
