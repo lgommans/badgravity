@@ -1,6 +1,5 @@
-// TODO features: future path calculation, maybe a constellation browser and/or challenge setups with also some tutorial mode
+// TODO features: maybe a constellation browser and/or challenge setups with also some tutorial mode
 // TODO under the hood: saving/loading of bodies (mainly by allowing to remove/rename bodies and figuring something for cvec/cpos that are currently unused), simplify strokes to rerender
-// TODO meta: put it on a version control for people to contribute more easily if they wish
 function $(q) {
 	return document.querySelector(q);
 }
