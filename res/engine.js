@@ -24,6 +24,7 @@ function saveGame() {
 		Athrust: thrustfield.value,
 		panx: panx,
 		pany: pany,
+		focus: focusBody ? focusBody.name : -1,
 		bodies: [],
 	};
 
@@ -53,55 +54,64 @@ function saveGame() {
 function loadGame(data) {
 	data = JSON.parse(data);
 
+	removeAllBodies();
+
+	for (let i in data.bodies) {
+		let spositionxy = data.bodies[i].spos.split(',');
+		let spositionx = parseFloat(spositionxy[0]);
+		let spositiony = parseFloat(spositionxy[1]);
+		let svelocityxy = data.bodies[i].svec.split(',');
+		let svelocityx = parseFloat(svelocityxy[0]);
+		let svelocityy = parseFloat(svelocityxy[1]);
+		let cpositionxy = data.bodies[i].cpos.split(',');
+		let cpositionx = parseFloat(cpositionxy[0]);
+		let cpositiony = parseFloat(cpositionxy[1]);
+		let cvelocityxy = data.bodies[i].cvec.split(',');
+		let cvelocityx = parseFloat(cvelocityxy[0]);
+		let cvelocityy = parseFloat(cvelocityxy[1]);
+
+		let config = {
+			name: data.bodies[i].name,
+			mass: data.bodies[i].mass,
+			position: new Cart2(spositionx, spositiony),
+			velocity: new Cart2(svelocityx, svelocityy),
+		};
+		if ('orientation' in data.bodies[i]) {
+			config.orientation = data.bodies[i].orientation;
+		}
+		addBody(config);
+
+		bodies[data.bodies[i].name].position = new Cart2(cpositionx, cpositiony);
+		bodies[data.bodies[i].name].velocity = new Cart2(cvelocityx, cvelocityy);
+	}
+
 	timeperstepfield.value = data.tps;
 	stepsperrunfield.value = data.spr;
 	thrustfield.value = data.Athrust;
+	scale = data.scale;
+
 	if (data.panx) {
 		panx = data.panx;
 		pany = data.pany;
 	}
 
-	if (bodies.length > data.bodies.length) {
-		alert('Cannot fully load game data: removing bodies not yet supported and your local game already has more than are in the save.');
-		// At least move the other one(s) out of the way..
-		for (let i in bodies) {
-			bodies[i].position = new Cart2(-1e40, -1e40);
-			bodies[i].velocity = new Cart2(0, 0);
-			$(`#${bodies[i].name}vec`).value = '0,0';
-			$(`#${bodies[i].name}pos`).value = '-1e40,-1e40';
-			$(`#${bodies[i].name}mass`).value = '0';
-		}
+	if (data.focus && data.focus !== -1) {
+		focusBody = bodies[data.focus];
 	}
-
-	while (bodies.length < data.bodies.length) {
-		addBody(); // don't care about params, we're going to override them anyway
+	else {
+		focusBody = null;
 	}
+}
 
-	for (let datai in data.bodies) {
-		// Because the controls aren't bound to a body and I can't change the name easily atm, let's just find a matching one.
-		// The way names are generated, everyone with the same body count should have the same bodies' names as well. So it should work... until we change something in the game.
-		let found = false;
-		datai = parseInt(datai);
-		for (let locali in bodies) {
-			if (bodies[locali].innerText == data.bodies[datai].name) {
-				let b = data.bodies[datai];
-
-				bodies[locali].position = new Cart2(b.cpos.x, b.cpos.y);
-				bodies[locali].velocity = new Cart2(b.cvec.x, b.cvec.y);
-				$(`#${bodies[locali].name}vec`).value = b.svec;
-				$(`#${bodies[locali].name}pos`).value = b.spos;
-				$(`#${bodies[locali].name}mass`).value = b.mass;
-
-				found = true;
-				break;
-			}
-		}
-
-		if ( ! found) {
-			// If you get this error, well, the data is there, you can restore it if you improve the restoring process...
-			alert('Loading error due to my shitty setup: did not find a matching body for one of the savegame bodies');
-		}
-	}
+function removeAllBodies() {
+	$("#bodiescontrols").querySelectorAll(':not(.collapsedLabel)').forEach(function(el) {
+		el.parentNode.removeChild(el);
+	});
+	$("#bodiesspeeds").querySelectorAll(':not(.collapsedLabel)').forEach(function(el) {
+		el.parentNode.removeChild(el);
+	});
+	$("#bodies").innerHTML = '';
+	bodies = {};
 }
 
 function shoottowardsmouse() {
@@ -152,9 +162,12 @@ function run() {
 		}
 	}
 
-	let thrust = 0;
+	let deltatime = 10 * parseFloat(timeperstepfield.value);
+
+	let thrust = new Cart2(0, 0);
 	if (arrowUp) {
-		thrust = parseFloat(thrustfield.value);
+		let newtons = parseFloat(thrustfield.value);
+		thrust = new Cart2(lengthdir_x(newtons * deltatime / bodies['A'].mass, bodies['A'].orientation - 90), lengthdir_y(newtons * deltatime / bodies['A'].mass, bodies['A'].orientation + 90));
 		bodies['A'].classList.add('boosting');
 	}
 	else {
@@ -175,11 +188,11 @@ function run() {
 		applyPan(mouseX, mouseY);
 	}
 
-	let deltatime = 10 * parseFloat(timeperstepfield.value);
 	let stepsperrun = parseFloat(stepsperrunfield.value);
+	let bodynames = Object.keys(bodies);
 	for (let i = 0; i < stepsperrun; i++) {
-		bodies['A'].velocity.addTo(new Cart2(lengthdir_x(thrust * deltatime / bodies['A'].mass, bodies['A'].orientation - 90), lengthdir_y(thrust * deltatime / bodies['A'].mass, bodies['A'].orientation + 90)));
-		step(bodies, deltatime);
+		bodies['A'].velocity.addTo(thrust);
+		step(bodies, bodynames, deltatime);
 
 		tmpstrokes = [];
 
@@ -216,28 +229,29 @@ function run() {
 	requestAnimationFrame(run);
 }
 
-function step(bodies, deltatime) {
+function step(bodies, bodynames, deltatime) {
 	// calculates the attraction force between each body and updates the velocity vector, but not the position
 
 	let gcdt = deltatime * GravityConstant;
-	for (let i in bodies) {
-		for (let j in bodies) {
+	for (let i in bodynames) {
+		for (let j in bodynames) {
 			if (i >= j) {
 				continue;
 			}
 
-			let separation_x = bodies[i].position.x - bodies[j].position.x;
-			let separation_y = bodies[i].position.y - bodies[j].position.y;
+			let separation_x = bodies[bodynames[i]].position.x - bodies[bodynames[j]].position.x;
+			let separation_y = bodies[bodynames[i]].position.y - bodies[bodynames[j]].position.y;
 			let separation = Math.sqrt(separation_x * separation_x + separation_y * separation_y);
-			let grav_accel = bodies[i].mass * bodies[j].mass / (separation * separation) * gcdt;
+			let grav_accel = bodies[bodynames[i]].mass * bodies[bodynames[j]].mass / (separation * separation) * gcdt;
 			let dir_x = separation_x / separation;
 			let dir_y = separation_y / separation;
-			bodies[i].velocity.x -= grav_accel / bodies[i].mass * dir_x;
-			bodies[i].velocity.y -= grav_accel / bodies[i].mass * dir_y;
-			bodies[j].velocity.x += grav_accel / bodies[j].mass * dir_x;
-			bodies[j].velocity.y += grav_accel / bodies[j].mass * dir_y;
+			bodies[bodynames[i]].velocity.x -= grav_accel / bodies[bodynames[i]].mass * dir_x;
+			bodies[bodynames[i]].velocity.y -= grav_accel / bodies[bodynames[i]].mass * dir_y;
+			bodies[bodynames[j]].velocity.x += grav_accel / bodies[bodynames[j]].mass * dir_x;
+			bodies[bodynames[j]].velocity.y += grav_accel / bodies[bodynames[j]].mass * dir_y;
 		}
 	}
+	debugger;
 }
 
 function render() {
@@ -310,13 +324,15 @@ function predictAndDraw() {
 		};
 	}
 
+
 	let deltatime = 500 * parseFloat(timeperstepfield.value);
 	let predictsteps = parseFloat(stepsperrunfield.value) * 20;
+	let bodynames = Object.keys(dupbodies);
 	predictioncanvasctx.beginPath();
 	predictioncanvasctx.clearRect(0, 0, $("#predictioncanvas").width, $("#predictioncanvas").height);
 	predictioncanvasctx.strokeStyle = 'rgba(160, 160, 255, 0.8)';
 	for (let i = 0; i < predictsteps; i++) {
-		step(dupbodies, deltatime);
+		step(dupbodies, bodynames, deltatime);
 		for (let i in dupbodies) {
 			let pp = dupbodies[i].position.toPagePos();
 			predictioncanvasctx.moveTo(pp.x, pp.y);
@@ -411,6 +427,9 @@ function addBody(config) {
 	newbody.mass = config.mass || 1;
 	newbody.velocity = config.velocity || new Cart2(bodies['A'].velocity);
 	newbody.position = config.position || new Cart2(bodies['A'].position).addTo(new Cart2(0, 10));
+	if ('orientation' in config) {
+		newbody.orientation = config.orientation;
+	}
 
 	newbody.innerText = newbody.name;
 	newbody.id = newbody.name + 'body';
@@ -656,6 +675,8 @@ let starttime = performance.now();
 
 let bodies = {};
 
+resetSimulation();
+
 if (location.hash.length > 2) {
 	loadGame(unescape(location.hash.substring(1)));
 }
@@ -664,6 +685,5 @@ else {
 	bodies['A'].orientation = 0;
 }
 
-resetSimulation();
 requestAnimationFrame(run);
 
