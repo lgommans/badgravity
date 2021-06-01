@@ -71,4 +71,9 @@ input[type="button"] {
 .boosting {
 	box-shadow: 0 4px 4px -3px red;
 }
+#bodiescontrols>span>input[type="button"] {
+	padding: 2px;
+	border: 1px solid #666;
+	margin-left: 4px;
+}
 

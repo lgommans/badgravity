@@ -15,22 +15,26 @@
 
 <span id=controls class=collapseable><span class=collapsedLabel>Controls</span>
 	<span id=simcontrols class='collapseable collapsed'><span class=collapsedLabel>Simulator</span>
-		<label title="Amount of time that passes each time the simulator does one step. Lower is more precision.">Time per step=<input type=number value=10 id=timeperstepinput></label>
-		<label title="Number of steps forwards per run of the simulation (it calls the step function this many times)">Steps per run=<input type=number min=0 step=1 value=50 id=stepsperruninput></label>
-		<label title="Keep the absolute reference frame when you set camera focus to another body. Slower and limited in how much history can be shown.">Absolute motion trails=<input type=checkbox id=rerenderinput></label>
-		<label title="How many newtons of force does your ship produce during a burn?">A thrust=<input type=number value=8 id=thrustinput></label>
+		<label title="Amount of time that passes each time the simulator does one step. Lower is more precision.">Time per step: <input type=number value=10 id=timeperstepinput></label>
+		<label title="Number of steps forwards per run of the simulation (it calls the step function this many times)">Steps per run: <input type=number min=0 step=1 value=50 id=stepsperruninput></label>
+		<label title="Keep the absolute reference frame when you set camera focus to another body. Slower and limited in how much history can be shown.">Absolute motion trails: <input type=checkbox id=rerenderinput></label>
+		<label title="Toggle drawing future position predictions. Note that this will always use absolute motion trails.">Prediction line: <input type=checkbox id=predictioninput checked></label>
+		<label title="Multiplies 'Time per step' to use for predictions (lower is more accurate)">Prediction precision: <input type=number value=300 id=predictionaccinput></label>
+		<label title="Multiplies 'Steps per run' to use for predictions (lower is faster)">Prediction distance: <input type=number value=10 id=predictionstepsinput></label>
+		<label title="How many newtons of force does your ship produce during a burn?">A thrust: <input type=number value=8 id=thrustinput></label>
 	</span>
 
 	<span id=bodiescontrols class='collapseable collapsed'><span class=collapsedLabel>Bodies</span></span>
 	<span id=bodiesspeeds class=collapseable><span class=collapsedLabel>Indicators</span></span>
 	<span id=scenarioslist class='collapseable collapsed'><span class=collapsedLabel>Scenarios</span></span>
 
-	<label title="Add a body to the system. Spawns near A at A's current vector; you need to adjust the parameters and restart to get the orbit you want (if anything in particular)."><input type=button value="Add body" id=addbodybtn></label>
-	<label title="Another scenario where you can try to get into and transfer between orbits around different bodies."><input type=button value="Scenario#2" id=scenario2btn></label>
-	<label><input type=button value="Clear trails" id=clearstroke></label>
-	<label><input type=button value="Restart" id=restartbtn></label>
-	<label><input type=button value="Help" onclick='location="about.html";'></label>
-	<label><input type=button value="Save" onclick='saveGame();'></label>
+	<span id=generalbuttons class=collapseable><span class=collapsedLabel>Menu</span><br>
+		<input title="Add a body to the system. Spawns near A at A's current vector; you need to adjust the parameters and restart to get the orbit you want (if anything in particular)." type=button value="Add body" id=addbodybtn><br>
+		<input type=button value="Clear trails" id=clearstroke><br>
+		<input type=button value="Restart" id=restartbtn><br>
+		<input type=button value="Help" onclick='location="about.html";'><br>
+		<input type=button value="Save" onclick='saveGame();'><br>
+	</span>
 </span>
 
 <script src='res/cart2.js'></script>

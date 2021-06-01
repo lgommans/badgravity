@@ -1,5 +1,5 @@
-// TODO features: maybe a constellation browser and/or challenge setups with also some tutorial mode
-// TODO under the hood: saving/loading of bodies (mainly by allowing to remove/rename bodies and figuring something for cvec/cpos that are currently unused), simplify strokes to rerender
+// TODO features: display scale; maybe a constellation browser and/or challenge setups with also some tutorial mode
+// TODO under the hood: simplify strokes to rerender
 function $(q) {
 	return document.querySelector(q);
 }
@@ -41,6 +41,9 @@ function saveGame() {
 		if (b.orientation) {
 			gamedata.bodies[gamedata.bodies.length - 1].orientation = b.orientation;
 		}
+		if (b.nick) {
+			gamedata.bodies[gamedata.bodies.length - 1].nick = b.nick;
+		}
 	}
 
 	location.hash = '#' + JSON.stringify(gamedata);
@@ -54,7 +57,9 @@ function saveGame() {
 function loadGame(data) {
 	data = JSON.parse(data);
 
-	removeAllBodies();
+	for (let i in bodies) {
+		removeBody(bodies[i]);
+	}
 
 	for (let i in data.bodies) {
 		let spositionxy = data.bodies[i].spos.split(',');
@@ -76,6 +81,9 @@ function loadGame(data) {
 			position: new Cart2(spositionx, spositiony),
 			velocity: new Cart2(svelocityx, svelocityy),
 		};
+		if ('nick' in data.bodies[i]) {
+			config.nick = data.bodies[i].nick;
+		}
 		if ('orientation' in data.bodies[i]) {
 			config.orientation = data.bodies[i].orientation;
 		}
@@ -103,15 +111,62 @@ function loadGame(data) {
 	}
 }
 
-function removeAllBodies() {
-	$("#bodiescontrols").querySelectorAll(':not(.collapsedLabel)').forEach(function(el) {
-		el.parentNode.removeChild(el);
+function takeControl(body) {
+	if (body.name == 'A') {
+		// we're done here
+		return;
+	}
+
+	let renameFieldSuffixes = 'body velocity vec pos controlgroup mass'.split(' ');
+	if ('A' in bodies) {
+		// We already have control of another body
+		let previouslyA = bodies['A'];
+		if ('nick' in bodies['A'] && !(bodies['A'].nick in bodies)) {
+			previouslyA.name = bodies['A'].nick;
+		}
+		else {
+			previouslyA.name = getAvailableBodyName();
+		}
+
+		previouslyA.innerText = previouslyA.name;
+
+		delete previouslyA.orientation;
+		bodies[previouslyA.name] = previouslyA;
+		for (let i in renameFieldSuffixes) {
+			$(`#A${renameFieldSuffixes[i]}`).id = `${previouslyA.name}${renameFieldSuffixes[i]}`;
+		}
+
+		if (body.name != previouslyA.name) {
+			delete bodies[body.name];
+		}
+	}
+	else {
+		delete bodies[body.name];
+	}
+
+	bodies['A'] = body;
+	for (let i in renameFieldSuffixes) {
+		$(`#${body.name}${renameFieldSuffixes[i]}`).id = `A${renameFieldSuffixes[i]}`;
+	}
+	body.nick = body.name;
+	body.name = 'A';
+	body.innerText = body.name;
+	body.orientation = 0;
+}
+
+function removeBody(body) {
+	$("#bodiescontrols").querySelectorAll('span').forEach(function(el) {
+		if (el.id == body.name + 'controlgroup') {
+			el.parentNode.removeChild(el);
+		}
 	});
-	$("#bodiesspeeds").querySelectorAll(':not(.collapsedLabel)').forEach(function(el) {
-		el.parentNode.removeChild(el);
+	$("#bodiesspeeds").querySelectorAll('input').forEach(function(el) {
+		if (el.id == body.name + 'velocity') {
+			el.parentNode.parentNode.removeChild(el.parentNode);
+		}
 	});
-	$("#bodies").innerHTML = '';
-	bodies = {};
+	$("#bodies").removeChild($(`#${body.name}body`));
+	delete bodies[body.name];
 }
 
 function shoottowardsmouse() {
@@ -128,10 +183,8 @@ function shoottowardsmouse() {
 }
 
 function resetSimulation() {
-	$("#predictioncanvas").width = innerWidth;
-	$("#predictioncanvas").height = innerHeight;
-	$("#trailscanvas").width = innerWidth;
-	$("#trailscanvas").height = innerHeight;
+	$("#predictioncanvas").width = $("#trailscanvas").width = $("#predictioncanvas").style.width = $("#trailscanvas").style.width = innerWidth;
+	$("#predictioncanvas").height = $("#trailscanvas").height = $("#predictioncanvas").style.height = $("#trailscanvas").style.height = innerHeight;
 	panx = 0;
 	pany = 0;
 
@@ -165,19 +218,21 @@ function run() {
 	let deltatime = 10 * parseFloat(timeperstepfield.value);
 
 	let thrust = new Cart2(0, 0);
-	if (arrowUp) {
-		let newtons = parseFloat(thrustfield.value);
-		thrust = new Cart2(lengthdir_x(newtons * deltatime / bodies['A'].mass, bodies['A'].orientation - 90), lengthdir_y(newtons * deltatime / bodies['A'].mass, bodies['A'].orientation + 90));
-		bodies['A'].classList.add('boosting');
-	}
-	else {
-		bodies['A'].classList.remove('boosting');
-	}
-	if (arrowLeft) {
-		bodies['A'].orientation -= 4.5;
-	}
-	if (arrowRight) {
-		bodies['A'].orientation += 4.5;
+	if ('A' in bodies) {
+		if (arrowUp) {
+			let newtons = parseFloat(thrustfield.value);
+			thrust = new Cart2(lengthdir_x(newtons * deltatime / bodies['A'].mass, bodies['A'].orientation - 90), lengthdir_y(newtons * deltatime / bodies['A'].mass, bodies['A'].orientation + 90));
+			bodies['A'].classList.add('boosting');
+		}
+		else {
+			bodies['A'].classList.remove('boosting');
+		}
+		if (arrowLeft) {
+			bodies['A'].orientation -= 4.5;
+		}
+		if (arrowRight) {
+			bodies['A'].orientation += 4.5;
+		}
 	}
 
 	for (let i in bodies) {
@@ -191,7 +246,9 @@ function run() {
 	let stepsperrun = parseFloat(stepsperrunfield.value);
 	let bodynames = Object.keys(bodies);
 	for (let i = 0; i < stepsperrun; i++) {
-		bodies['A'].velocity.addTo(thrust);
+		if ('A' in bodies) {
+			bodies['A'].velocity.addTo(thrust);
+		}
 		step(bodies, bodynames, deltatime);
 
 		tmpstrokes = [];
@@ -251,7 +308,6 @@ function step(bodies, bodynames, deltatime) {
 			bodies[bodynames[j]].velocity.y += grav_accel / bodies[bodynames[j]].mass * dir_y;
 		}
 	}
-	debugger;
 }
 
 function render() {
@@ -282,7 +338,9 @@ function render() {
 		renderStrokes(strokes);
 	}
 
-	predictAndDraw();
+	if ($("#predictioninput").checked) {
+		predictAndDraw();
+	}
 }
 
 function renderStrokes(strokes, offset) {
@@ -325,12 +383,12 @@ function predictAndDraw() {
 	}
 
 
-	let deltatime = 500 * parseFloat(timeperstepfield.value);
-	let predictsteps = parseFloat(stepsperrunfield.value) * 20;
+	let deltatime = parseFloat(timeperstepfield.value) * parseFloat($("#predictionaccinput").value);
+	let predictsteps = parseFloat(stepsperrunfield.value) * parseFloat($("#predictionstepsinput").value);
 	let bodynames = Object.keys(dupbodies);
 	predictioncanvasctx.beginPath();
 	predictioncanvasctx.clearRect(0, 0, $("#predictioncanvas").width, $("#predictioncanvas").height);
-	predictioncanvasctx.strokeStyle = 'rgba(160, 160, 255, 0.8)';
+	predictioncanvasctx.strokeStyle = 'rgba(190, 190, 255, 0.8)';
 	for (let i = 0; i < predictsteps; i++) {
 		step(dupbodies, bodynames, deltatime);
 		for (let i in dupbodies) {
@@ -349,9 +407,9 @@ function predictAndDraw() {
 function scenario1() {
 	addBody({
 		name: 'A',
-		mass: '420e3',
-		position: new Cart2(150006838000, 0),
-		velocity: new Cart2(0, 37440),
+		mass: '7342e18',
+		position: new Cart2(150399000000, 0),
+		velocity: new Cart2(0, 30802),
 	});
 	addBody({
 		name: 'S',
@@ -367,10 +425,24 @@ function scenario1() {
 	});
 }
 
+function moon() {
+	addBody({
+		name: 'M',
+		mass: '420e3',
+		position: new Cart2(150006838000, 0),
+		velocity: new Cart2(0, 37440),
+	});
+}
+
 function scenario2() {
-	while (Object.keys(bodies).length < 4) {
-		addBody();
+	for (let i in bodies) {
+		removeBody(bodies[i]);
 	}
+
+	addBody({name: 'A'});
+	addBody({name: 'B'});
+	addBody({name: 'E'});
+	addBody({name: 'S'});
 
 	$("#timeperstepinput").value = '3';
 	$("#stepsperruninput").value = '25';
@@ -383,6 +455,7 @@ function scenario2() {
 	$("#Amass").value = '1';
 	$("#Avec").value = '0,0.0001';
 	$("#Apos").value = '200,0';
+	bodies['A'].orientation = 0;
 
 	$("#Bpos").value = '0,-420';
 	$("#Bvec").value = '0.000172,0';
@@ -393,12 +466,44 @@ function scenario2() {
 	$("#Emass").value = 6000;
 
 	scale = 1;
+	thrustfield.value = '1e-7';
 
 	resetSimulation();
 }
 
+function scenario3() {
+	for (let i in bodies) {
+		removeBody(bodies[i]);
+	}
+
+	let vscaler = 0.00000082;
+
+	addBody({
+		position: new Cart2(-97.966564648019, 0),
+		velocity: new Cart2(1.190653832229 * vscaler, 99.052143194193 * vscaler),
+		mass: 10e3,
+	});
+	addBody({
+		position: new Cart2(10.805012998999, 0),
+		velocity: new Cart2(0.91101690249 * vscaler, -133.286143310735 * vscaler),
+		mass: 10e3,
+	});
+	addBody({
+		position: new Cart2(87.161551684016, 0),
+		velocity: new Cart2(-2.101670735083 * vscaler, 34.234000081548 * vscaler),
+		mass: 10e3,
+	});
+
+	scale = 0.4;
+	timeperstepfield.value = 10;
+	stepsperrunfield.value = 100;
+	thrustfield.value = '1e-6';
+	$("#predictionaccinput").value = 1500;
+	$("#predictionstepsinput").value = 1;
+}
+
 function getAvailableBodyName() {
-	let cc = 'B'.charCodeAt(0); // char code
+	let cc = 'A'.charCodeAt(0); // char code
 	while (true) {
 		let found = false;
 		let c = String.fromCharCode(cc);
@@ -417,25 +522,44 @@ function getAvailableBodyName() {
 	}
 }
 
+function tiebreakRequestedBodyName(name) {
+	let tiebreaker = '';
+	while (name + tiebreaker.toString() in bodies) {
+		if (tiebreaker === '') {
+			tiebreaker = 2;
+		}
+		else {
+			tiebreaker += 1;
+		}
+	}
+	return name + tiebreaker;
+}
+
 function addBody(config) {
 	if ( ! config) {
 		config = {};
 	}
 
 	let newbody = document.createElement('div');
-	newbody.name = config.name || getAvailableBodyName();
-	newbody.mass = config.mass || 1;
-	newbody.velocity = config.velocity || new Cart2(bodies['A'].velocity);
-	newbody.position = config.position || new Cart2(bodies['A'].position).addTo(new Cart2(0, 10));
+
+	newbody.name = 'name' in config ? tiebreakRequestedBodyName(config.name) : getAvailableBodyName();
+	newbody.mass = 'mass' in config ? config.mass : 1;
+	newbody.velocity = config.velocity || new Cart2(0, 0);
+	newbody.position = config.position || new Cart2(0, 0);
+
 	if ('orientation' in config) {
 		newbody.orientation = config.orientation;
+	}
+
+	if ('nick' in config) {
+		newbody.nick = config.nick;
 	}
 
 	newbody.innerText = newbody.name;
 	newbody.id = newbody.name + 'body';
 
 	let controlgroup = document.createElement('span');
-	controlgroup.id = 'controlgroup' + newbody.name;
+	controlgroup.id = newbody.name + 'controlgroup';
 	controlgroup.classList.add('collapseable');
 	controlgroup.onclick = function(ev) {
 		if (ev.target == controlgroup) {
@@ -453,23 +577,39 @@ function addBody(config) {
 	};
 	controlgroup.appendChild(controlgroupCollapsedName);
 
+	let takeControlBtn = document.createElement('input');
+	takeControlBtn.type = 'button';
+	takeControlBtn.value = 'control';
+	takeControlBtn.onclick = function() {
+		takeControl(newbody);
+	};
+	controlgroup.appendChild(takeControlBtn);
+
+	let removeBtn = document.createElement('input');
+	removeBtn.type = 'button';
+	removeBtn.value = 'remove';
+	removeBtn.onclick = function() {
+		removeBody(newbody);
+	};
+	controlgroup.appendChild(removeBtn);
+
 	let tmpcontrol = document.createElement('label');
 	tmpcontrol.title = 'Mass of object in kg. This value is applied immediately';
-	tmpcontrol.innerHTML = `${newbody.name} mass=<input type=number value=${newbody.mass} id=${newbody.name}mass>`;
+	tmpcontrol.innerHTML = `${newbody.name} mass: <input type=number value=${newbody.mass} id=${newbody.name}mass>`;
 	controlgroup.appendChild(tmpcontrol);
 
 	tmpcontrol = document.createElement('label');
 	tmpcontrol.title = 'Start position in m. This value is applied when you restart';
-	tmpcontrol.innerHTML = `${newbody.name} position=<input type=text value=${newbody.position.toString()} id=${newbody.name}pos>`;
+	tmpcontrol.innerHTML = `${newbody.name} position: <input type=text value=${newbody.position.toString()} id=${newbody.name}pos>`;
 	controlgroup.appendChild(tmpcontrol);
 
 	tmpcontrol = document.createElement('label');
 	tmpcontrol.title = 'Start speed in m/s. This value is applied when you restart';
-	tmpcontrol.innerHTML = `${newbody.name} vector=<input type=text value=${newbody.velocity.toString()} id=${newbody.name}vec>`;
+	tmpcontrol.innerHTML = `${newbody.name} vector: <input type=text value=${newbody.velocity.toString()} id=${newbody.name}vec>`;
 	controlgroup.appendChild(tmpcontrol);
 
 	tmpcontrol = document.createElement('label');
-	tmpcontrol.innerHTML = `${newbody.name} speed=<input readonly type=text id=${newbody.name}velocity>`;
+	tmpcontrol.innerHTML = `${newbody.name} speed: <input readonly type=text id=${newbody.name}velocity>`;
 	$("#bodiesspeeds").appendChild(tmpcontrol);
 
 	newbody.mass = parseFloat(newbody.mass);
@@ -496,7 +636,7 @@ function applyPan(mouseX, mouseY) {
 }
 
 function getfps() {
-	console.log(framecount / ((performance.now() - starttime) / 1000));
+	return framecount / ((performance.now() - starttime) / 1000);
 }
 
 function resetfps() {
@@ -629,13 +769,20 @@ document.addEventListener("wheel", function(ev) {
 	passive: false,
 });
 
-$("#scenario2btn").onclick = scenario2;
-
 $("#addbodybtn").onclick = function() {
-	addBody({
-		velocity: new Cart2(bodies['A'].velocity),
-		position: new Cart2(bodies['A'].position).addTo(new Cart2(20, 0)),
-	});
+	if ('A' in bodies) {
+		addBody({
+			velocity: new Cart2(bodies['A'].velocity),
+			position: new Cart2(bodies['A'].position).addTo(new Cart2(20 * scale, 0)),
+		});
+	}
+	else {
+		addBody();
+	}
+};
+
+$("#predictioninput").onclick = function() {
+	predictioncanvasctx.clearRect(0, 0, $("#predictioncanvas").width, $("#predictioncanvas").height);
 };
 
 document.querySelectorAll(".collapseable").forEach(function(el) {
@@ -662,7 +809,7 @@ let prevMouseX = 0;
 let prevMouseY = 0;
 let mouseX = 0;
 let mouseY = 0;
-let scale = 1e9;
+let scale = 5e8;
 let panx = 0;
 let pany = 0;
 let focusBody = null;
@@ -681,7 +828,7 @@ if (location.hash.length > 2) {
 	loadGame(unescape(location.hash.substring(1)));
 }
 else {
-	scenario1();
+	scenario3();
 	bodies['A'].orientation = 0;
 }
 
