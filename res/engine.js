@@ -616,6 +616,7 @@ function addBody(config) {
 
 	newbody.onclick = function(ev) {
 		focusBody = ev.target;
+		advanceIntro(3);
 	};
 
 	$("#bodies").appendChild(newbody);
@@ -633,6 +634,43 @@ function applyPan(mouseX, mouseY) {
 	prevMouseX = mouseX;
 	prevMouseY = mouseY;
 	focusBody = null;
+}
+
+function intro() {
+	introStep = 1;
+	$("#infobox").innerHTML = '<input type=button value=x title="Next hint" onclick="advanceIntro()"> <strong>Hint:</strong> <span>Use arrow keys to rotate "A" and fire its engine</span>'
+}
+
+function advanceIntro(step) {
+	if (introStep == -1) { // intro finished/disabled
+		return;
+	}
+
+	if ( ! step) {
+		step = introStep;
+	}
+	else if (introStep != step) {
+		// we got an advance signal, but the user did a different action than the one we were waiting for
+		return;
+	}
+
+	if (introStep == 1) {
+		$("#infobox>span").innerText = 'Scroll to zoom';
+		introStep = 2;
+	}
+	else if (introStep == 2) {
+		$("#infobox>span").innerText = 'Click on one of the objects to focus it';
+		introStep = 3;
+	}
+	else if (introStep == 3) {
+		$("#infobox>span").innerText = 'Open the "Scenarios" menu for challenges';
+		introStep = 4;
+	}
+	else if (introStep == 4) {
+		$("#infobox").innerHTML = '';
+		introStep = -1;
+		localStorage.introshown = true;
+	}
 }
 
 function getfps() {
@@ -671,12 +709,15 @@ document.onkeydown = function(ev) {
 	switch (ev.key) {
 		case 'ArrowUp':
 			arrowUp = true;
+			advanceIntro(1);
 			break;
 		case 'ArrowLeft':
 			arrowLeft = true;
+			advanceIntro(1);
 			break;
 		case 'ArrowRight':
 			arrowRight = true;
+			advanceIntro(1);
 			break;
 		case ' ':
 			shoottowardsmouse();
@@ -762,6 +803,7 @@ document.addEventListener("wheel", function(ev) {
 	pany += numPixelsThatWillDropOffTheTopOrBottom * ratioToTopOrBottom;*/
 
 	scale = newscale;
+	advanceIntro(2);
 
 	ev.preventDefault();
 },
@@ -789,6 +831,7 @@ document.querySelectorAll(".collapseable").forEach(function(el) {
 	el.onclick = function(ev) {
 		if (ev.target == el) {
 			el.classList.toggle('collapsed');
+			advanceIntro(4);
 		}
 	};
 });
@@ -797,6 +840,7 @@ document.querySelectorAll(".collapsedLabel").forEach(function(el) {
 	el.onclick = function(ev) {
 		if (ev.target == el) {
 			el.parentNode.classList.toggle('collapsed');
+			advanceIntro(4);
 		}
 	};
 });
@@ -819,6 +863,7 @@ let rerenderEvery = 2;
 let strokes = [];
 let framecount = 0;
 let starttime = performance.now();
+let introStep = -1;
 
 let bodies = {};
 
@@ -830,6 +875,10 @@ if (location.hash.length > 2) {
 else {
 	scenario3();
 	bodies['A'].orientation = 0;
+}
+
+if ( ! localStorage.introshown) {
+	intro();
 }
 
 requestAnimationFrame(run);

@@ -76,4 +76,10 @@ input[type="button"] {
 	border: 1px solid #666;
 	margin-left: 4px;
 }
+#infobox {
+	display: block;
+}
+#infobox>input {
+	position: relative;
+}
 
