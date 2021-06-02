@@ -6,11 +6,16 @@ function Cart2(x,y) {
 		this.y = x.y;
 	}
 	else {
-		if(x != undefined) {
+		if (typeof(x) == 'object' && 'y' in x) {
+			this.x = x.x;
+			this.y = x.y;
+		}
+		else if(x != undefined) {
 			this.x = x;
 			this.y = y;
 		}
 	}
+
 	this.sub = function(a) {
 		return new Cart2(this.x - a.x, this.y - a.y);
 	}

@@ -16,70 +16,59 @@ Cart2.prototype.toPagePos = function() {
 	return new Cart2(innerWidth / 2 + ((panx + this.x) / scale), innerHeight / 2 + ((pany + this.y) / scale));
 }
 
-function saveGame() {
-	let gamedata = {
-		tps: timeperstepfield.value,
-		spr: stepsperrunfield.value,
+function saveScenario() {
+	let scenariodata = {
+		timeperstep: timeperstepfield.value,
+		stepsperrun: stepsperrunfield.value,
 		scale: scale,
-		Athrust: thrustfield.value,
+		thrust: thrustfield.value,
+		predict: $("#predictioninput").checked ? 1 : 0,
+		predictionsteps: $("#predictionstepsinput").value,
+		predictionacc: $("#predictionaccinput").value,
 		panx: panx,
 		pany: pany,
 		focus: focusBody ? focusBody.name : -1,
-		bodies: [],
+		bodies: {},
 	};
 
 	for (let i in bodies) {
 		let b = bodies[i];
-		gamedata.bodies.push({
-			name: b.name,
-			spos: $(`#${b.name}pos`).value,
-			svec: $(`#${b.name}vec`).value,
+		scenariodata.bodies[b.name] = {
+			position: {x: b.position.x, y: b.position.y},
+			velocity: {x: b.velocity.x, y: b.velocity.y},
 			mass: $(`#${b.name}mass`).value,
-			cpos: b.position.toString(),
-			cvec: b.velocity.toString(),
-		});
-		if (b.orientation) {
-			gamedata.bodies[gamedata.bodies.length - 1].orientation = b.orientation;
+		};
+		if ('orientation' in b) {
+			scenariodata.bodies[b.name].orientation = b.orientation;
 		}
-		if (b.nick) {
-			gamedata.bodies[gamedata.bodies.length - 1].nick = b.nick;
+		if ('nick' in b) {
+			scenariodata.bodies[b.name].nick = b.nick;
 		}
 	}
 
-	location.hash = '#' + JSON.stringify(gamedata);
+	location.hash = '#' + JSON.stringify(scenariodata);
 
 	if ( ! localStorage.savemsgshown) {
-		alert('The game state was successfully encoded into the page link.\nPlease copy and store the link from the address bar to save this state.\nThis message is shown only once.');
+		alert('The simulation state has been encoded into the page link.\nPlease copy and store the link from the address bar to save this scenario.\nThis message is shown only once.');
 		localStorage.savemsgshown = true;
 	}
 }
 
-function loadGame(data) {
-	data = JSON.parse(data);
-
+function startScenario(data) {
 	for (let i in bodies) {
 		removeBody(bodies[i]);
 	}
 
-	for (let i in data.bodies) {
-		let spositionxy = data.bodies[i].spos.split(',');
-		let spositionx = parseFloat(spositionxy[0]);
-		let spositiony = parseFloat(spositionxy[1]);
-		let svelocityxy = data.bodies[i].svec.split(',');
-		let svelocityx = parseFloat(svelocityxy[0]);
-		let svelocityy = parseFloat(svelocityxy[1]);
-		let cpositionxy = data.bodies[i].cpos.split(',');
-		let cpositionx = parseFloat(cpositionxy[0]);
-		let cpositiony = parseFloat(cpositionxy[1]);
-		let cvelocityxy = data.bodies[i].cvec.split(',');
-		let cvelocityx = parseFloat(cvelocityxy[0]);
-		let cvelocityy = parseFloat(cvelocityxy[1]);
+	addScenario(data);
+}
 
+function addScenario(data) {
+	for (let i in data.bodies) {
 		let config = {
-			name: data.bodies[i].name,
+			name: i,
 			mass: data.bodies[i].mass,
-			position: new Cart2(spositionx, spositiony),
-			velocity: new Cart2(svelocityx, svelocityy),
+			position: new Cart2(data.bodies[i].position),
+			velocity: new Cart2(data.bodies[i].velocity),
 		};
 		if ('nick' in data.bodies[i]) {
 			config.nick = data.bodies[i].nick;
@@ -88,26 +77,37 @@ function loadGame(data) {
 			config.orientation = data.bodies[i].orientation;
 		}
 		addBody(config);
-
-		bodies[data.bodies[i].name].position = new Cart2(cpositionx, cpositiony);
-		bodies[data.bodies[i].name].velocity = new Cart2(cvelocityx, cvelocityy);
 	}
 
-	timeperstepfield.value = data.tps;
-	stepsperrunfield.value = data.spr;
-	thrustfield.value = data.Athrust;
-	scale = data.scale;
+	if ('scale' in data) {
+		scale = data.scale;
+	}
+	if ('timeperstep' in data) {
+		timeperstepfield.value = data.timeperstep;
+	}
+	if ('stepsperrun' in data) {
+		stepsperrunfield.value = data.stepsperrun;
+	}
+	if ('predict' in data) {
+		$("#predictioninput").checked = data.predict == 1 ? true : false;
+	}
+	if ('predictionacc' in data) {
+		$("#predictionaccinput").value = data.predictionacc;
+	}
+	if ('predictionsteps' in data) {
+		$("#predictionstepsinput").value = data.predictionsteps;
+	}
+	if ('thrust' in data) {
+		thrustfield.value = data.thrust;
+	}
 
-	if (data.panx) {
+	if ('panx' in data) {
 		panx = data.panx;
 		pany = data.pany;
 	}
 
-	if (data.focus && data.focus !== -1) {
-		focusBody = bodies[data.focus];
-	}
-	else {
-		focusBody = null;
+	if ('focus' in data) {
+		focusBody = (data.focus === -1 ? null : bodies[data.focus]);
 	}
 }
 
@@ -622,6 +622,11 @@ function addBody(config) {
 	$("#bodies").appendChild(newbody);
 	bodies[newbody.name] = newbody;
 	$("#bodiescontrols").appendChild(controlgroup)
+
+	if ('A' in bodies && ! ('orientation' in bodies['A'])) {
+		// Check that, if we have an A at least, we can control it
+		bodies['A'].orientation = 0;
+	}
 }
 
 function applyPan(mouseX, mouseY) {
@@ -663,10 +668,18 @@ function advanceIntro(step) {
 		introStep = 3;
 	}
 	else if (introStep == 3) {
-		$("#infobox>span").innerText = 'Open the "Scenarios" menu for challenges';
+		$("#infobox>span").innerText = 'Use the "Clear trails" button to clean up the screen';
 		introStep = 4;
 	}
 	else if (introStep == 4) {
+		$("#infobox>span").innerText = "Prediction lines don't match in relative reference frames (following an object), enable absolute motion trails in Simulator controls";
+		introStep = 5;
+	}
+	else if (introStep == 5) {
+		$("#infobox>span").innerText = 'Open the "Scenarios" menu for challenges';
+		introStep = 6;
+	}
+	else if (introStep == 6) {
 		$("#infobox").innerHTML = '';
 		introStep = -1;
 		localStorage.introshown = true;
@@ -702,6 +715,7 @@ $("#restartbtn").onclick = resetSimulation;
 
 clearstrokebtn.onclick = function() {
 	trailscanvasctx.clearRect(0, 0, $("#trailscanvas").width, $("#trailscanvas").height)
+	advanceIntro(4);
 };
 
 document.onkeydown = function(ev) {
@@ -823,6 +837,10 @@ $("#addbodybtn").onclick = function() {
 	}
 };
 
+$("#rerenderinput").onclick = function() {
+	advanceIntro(5);
+}
+
 $("#predictioninput").onclick = function() {
 	predictioncanvasctx.clearRect(0, 0, $("#predictioncanvas").width, $("#predictioncanvas").height);
 };
@@ -831,7 +849,7 @@ document.querySelectorAll(".collapseable").forEach(function(el) {
 	el.onclick = function(ev) {
 		if (ev.target == el) {
 			el.classList.toggle('collapsed');
-			advanceIntro(4);
+			advanceIntro(6);
 		}
 	};
 });
@@ -840,7 +858,7 @@ document.querySelectorAll(".collapsedLabel").forEach(function(el) {
 	el.onclick = function(ev) {
 		if (ev.target == el) {
 			el.parentNode.classList.toggle('collapsed');
-			advanceIntro(4);
+			advanceIntro(6);
 		}
 	};
 });
@@ -870,7 +888,7 @@ let bodies = {};
 resetSimulation();
 
 if (location.hash.length > 2) {
-	loadGame(unescape(location.hash.substring(1)));
+	startScenario(JSON.parse(unescape(location.hash.substring(1))));
 }
 else {
 	scenario3();
@@ -880,6 +898,34 @@ else {
 if ( ! localStorage.introshown) {
 	intro();
 }
+
+fetch('res/scenarios.json').then(response => response.json()).then(function(scenarios) {
+	for (let i in scenarios) {
+		let span = document.createElement('span');
+		span.classList.add('scenario');
+		span.innerText = scenarios[i].title
+
+		let button = document.createElement('input');
+		button.type = 'button';
+		button.value = '+';
+		button.title = 'Add this scenario into current scenario'
+		button.onclick = function() {
+			addScenario(scenarios[i]);
+		};
+		span.appendChild(button);
+
+		button = document.createElement('input');
+		button.type = 'button';
+		button.title = 'Start scenario, replacing current scenario'
+		button.value = '‣';
+		button.onclick = function() {
+			startScenario(scenarios[i]);
+		};
+		span.appendChild(button);
+
+		$("#scenarioslist").appendChild(span);
+	}
+});
 
 requestAnimationFrame(run);
 

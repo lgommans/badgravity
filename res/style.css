@@ -51,7 +51,7 @@ input[type="button"] {
 	color: #777;
 }
 .collapseable.collapsed::before {
-	content: '‣';
+	content: '▸';
 	padding: 3px;
 }
 .collapseable::before {
@@ -81,5 +81,10 @@ input[type="button"] {
 }
 #infobox>input {
 	position: relative;
+}
+.scenario>input[type="button"] {
+	padding: 2px;
+	border: 1px solid #666;
+	margin-left: 4px;
 }
 
