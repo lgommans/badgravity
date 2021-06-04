@@ -76,11 +76,34 @@ function addScenario(data) {
 		if ('orientation' in data.bodies[i]) {
 			config.orientation = data.bodies[i].orientation;
 		}
-		addBody(config);
+		if ('orientation' in data.bodies[i]) {
+			config.thrust = data.bodies[i].thrust;
+		}
+		if ('hover' in data.bodies[i]) {
+			config.hoverText = data.bodies[i].hover;
+		}
+		let newbody = addBody(config);
+		if ('relativeTo' in data.bodies[i]) {
+			let t = data.bodies[i].relativeTo;
+			if (t in bodies) {
+				newbody.velocity.x += bodies[t].velocity.x;
+				newbody.velocity.y += bodies[t].velocity.y;
+				newbody.position.x += bodies[t].position.x;
+				newbody.position.y += bodies[t].position.y;
+			}
+			else {
+				alert(`${i} is meant to orbit ${t}, but ${t} was not found. It will instead spawn relative to the center of the screen.\nYou may want to adjust its parameters in the Bodies menu.`);
+			}
+		}
 	}
 
 	if ('scale' in data) {
 		scale = data.scale;
+	}
+	if ('maxTPS' in data) {
+		if (parseFloat(timeperstepfield.value) > data.maxTPS) {
+			timeperstepfield.value = data.maxTPS;
+		}
 	}
 	if ('timeperstep' in data) {
 		timeperstepfield.value = data.timeperstep;
@@ -97,8 +120,8 @@ function addScenario(data) {
 	if ('predictionsteps' in data) {
 		$("#predictionstepsinput").value = data.predictionsteps;
 	}
-	if ('thrust' in data) {
-		thrustfield.value = data.thrust;
+	if ('A' in bodies && 'thrust' in bodies['A']) {
+		thrustfield.value = bodies['A'].thrust;
 	}
 
 	if ('panx' in data) {
@@ -112,12 +135,17 @@ function addScenario(data) {
 }
 
 function takeControl(body) {
+	if (body.thrust) {
+		thrustfield.value = body.thrust;
+	}
+
 	if (body.name == 'A') {
 		// we're done here
 		return;
 	}
 
 	let renameFieldSuffixes = 'body velocity vec pos controlgroup mass'.split(' ');
+
 	if ('A' in bodies) {
 		// We already have control of another body
 		let previouslyA = bodies['A'];
@@ -132,6 +160,10 @@ function takeControl(body) {
 
 		delete previouslyA.orientation;
 		bodies[previouslyA.name] = previouslyA;
+		$('#Acontrolgroup>.collapsedLabel').innerText = previouslyA.name;
+		$('#Acontrolgroup').querySelectorAll('label>span').forEach(function(el) {
+			el.innerText = previouslyA.name;
+		});
 		for (let i in renameFieldSuffixes) {
 			$(`#A${renameFieldSuffixes[i]}`).id = `${previouslyA.name}${renameFieldSuffixes[i]}`;
 		}
@@ -148,6 +180,10 @@ function takeControl(body) {
 	for (let i in renameFieldSuffixes) {
 		$(`#${body.name}${renameFieldSuffixes[i]}`).id = `A${renameFieldSuffixes[i]}`;
 	}
+	$('#Acontrolgroup>.collapsedLabel').innerText = 'A';
+	$('#Acontrolgroup').querySelectorAll('label>span').forEach(function(el) {
+		el.innerText = 'A';
+	});
 	body.nick = body.name;
 	body.name = 'A';
 	body.innerText = body.name;
@@ -196,18 +232,30 @@ function resetSimulation() {
 }
 
 function run() {
-	rerender_strokes = $("#rerenderinput").checked;
+	if (trailmodefield.value == 'rel') {
+		draw_strokes = true;
+		rerender_strokes = false;
+	}
+	else if (trailmodefield.value == 'non') {
+		draw_strokes = false;
+		rerender_strokes = false;
+	}
+	else if (trailmodefield.value == 'abs') {
+		draw_strokes = true;
+		rerender_strokes = true;
+	}
+
 	if (centerZoomTimeout != 0) {
 		if (centerZoomTimeout > 0) {
 			centerZoomTimeout -= 1;
-			$("#centerzoom").style.fontSize = (centerZoomTimeout * CENTERZOOMSCALER).toString() + 'pt';
+			centerzoomobj.style.fontSize = (centerZoomTimeout * CENTERZOOMSCALER).toString() + 'pt';
 		}
 		else {
 			centerZoomTimeout += 1;
-			$("#centerzoom").style.fontSize = ((ZOOM_ANIM_DURATION + centerZoomTimeout) * CENTERZOOMSCALER).toString() + 'pt';
+			centerzoomobj.style.fontSize = ((ZOOM_ANIM_DURATION + centerZoomTimeout) * CENTERZOOMSCALER).toString() + 'pt';
 		}
 		if (centerZoomTimeout == 0) {
-			$("#centerzoom").style.display = 'none';
+			centerzoomobj.style.display = 'none';
 		}
 		else {
 			centerzoomobj.style.left = `calc(50% - ${centerzoomobj.offsetWidth / 2}px)`;
@@ -222,10 +270,6 @@ function run() {
 		if (arrowUp) {
 			let newtons = parseFloat(thrustfield.value);
 			thrust = new Cart2(lengthdir_x(newtons * deltatime / bodies['A'].mass, bodies['A'].orientation - 90), lengthdir_y(newtons * deltatime / bodies['A'].mass, bodies['A'].orientation + 90));
-			bodies['A'].classList.add('boosting');
-		}
-		else {
-			bodies['A'].classList.remove('boosting');
 		}
 		if (arrowLeft) {
 			bodies['A'].orientation -= 4.5;
@@ -256,7 +300,7 @@ function run() {
 		for (let i in bodies) {
 			let startPos = new Cart2(bodies[i].position);
 			bodies[i].position.addTo(bodies[i].velocity.mult(deltatime));
-			if (STROKE) {
+			if (draw_strokes) {
 				tmpstrokes.push({
 					startPos: startPos,
 					endPos: new Cart2(bodies[i].position),
@@ -344,6 +388,10 @@ function render() {
 }
 
 function renderStrokes(strokes, offset) {
+	if ( ! draw_strokes) {
+		return;
+	}
+
 	trailscanvasctx.beginPath();
 	trailscanvasctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
 	let nonblack = false;
@@ -404,104 +452,6 @@ function predictAndDraw() {
 	predictioncanvasctx.stroke();
 }
 
-function scenario1() {
-	addBody({
-		name: 'A',
-		mass: '7342e18',
-		position: new Cart2(150399000000, 0),
-		velocity: new Cart2(0, 30802),
-	});
-	addBody({
-		name: 'S',
-		mass: '19885e26',
-		position: new Cart2(0, 0),
-		velocity: new Cart2(0, 0),
-	});
-	addBody({
-		name: 'E',
-		mass: '5.972e24',
-		position: new Cart2(150e9, 0),
-		velocity: new Cart2(0, 29780),
-	});
-}
-
-function moon() {
-	addBody({
-		name: 'M',
-		mass: '420e3',
-		position: new Cart2(150006838000, 0),
-		velocity: new Cart2(0, 37440),
-	});
-}
-
-function scenario2() {
-	for (let i in bodies) {
-		removeBody(bodies[i]);
-	}
-
-	addBody({name: 'A'});
-	addBody({name: 'B'});
-	addBody({name: 'E'});
-	addBody({name: 'S'});
-
-	$("#timeperstepinput").value = '3';
-	$("#stepsperruninput").value = '25';
-	$("#thrustinput").value = '1';
-
-	bodies['S'].position = new Cart2(0, 0);
-	bodies['S'].velocity = new Cart2(0, 0);
-	$("#Smass").value = '5e5';
-
-	$("#Amass").value = '1';
-	$("#Avec").value = '0,0.0001';
-	$("#Apos").value = '200,0';
-	bodies['A'].orientation = 0;
-
-	$("#Bpos").value = '0,-420';
-	$("#Bvec").value = '0.000172,0';
-	$("#Bmass").value = 6000;
-
-	$("#Epos").value = '0,200';
-	$("#Evec").value = '-0.00023,0';
-	$("#Emass").value = 6000;
-
-	scale = 1;
-	thrustfield.value = '1e-7';
-
-	resetSimulation();
-}
-
-function scenario3() {
-	for (let i in bodies) {
-		removeBody(bodies[i]);
-	}
-
-	let vscaler = 0.00000082;
-
-	addBody({
-		position: new Cart2(-97.966564648019, 0),
-		velocity: new Cart2(1.190653832229 * vscaler, 99.052143194193 * vscaler),
-		mass: 10e3,
-	});
-	addBody({
-		position: new Cart2(10.805012998999, 0),
-		velocity: new Cart2(0.91101690249 * vscaler, -133.286143310735 * vscaler),
-		mass: 10e3,
-	});
-	addBody({
-		position: new Cart2(87.161551684016, 0),
-		velocity: new Cart2(-2.101670735083 * vscaler, 34.234000081548 * vscaler),
-		mass: 10e3,
-	});
-
-	scale = 0.4;
-	timeperstepfield.value = 10;
-	stepsperrunfield.value = 100;
-	thrustfield.value = '1e-6';
-	$("#predictionaccinput").value = 1500;
-	$("#predictionstepsinput").value = 1;
-}
-
 function getAvailableBodyName() {
 	let cc = 'A'.charCodeAt(0); // char code
 	while (true) {
@@ -555,6 +505,10 @@ function addBody(config) {
 		newbody.nick = config.nick;
 	}
 
+	if ('hoverText' in config) {
+		newbody.title = config.hoverText;
+	}
+
 	newbody.innerText = newbody.name;
 	newbody.id = newbody.name + 'body';
 
@@ -595,21 +549,21 @@ function addBody(config) {
 
 	let tmpcontrol = document.createElement('label');
 	tmpcontrol.title = 'Mass of object in kg. This value is applied immediately';
-	tmpcontrol.innerHTML = `${newbody.name} mass: <input type=number value=${newbody.mass} id=${newbody.name}mass>`;
+	tmpcontrol.innerHTML = `<span>${newbody.name}</span> mass: <input type=number value=${newbody.mass} id=${newbody.name}mass>`;
 	controlgroup.appendChild(tmpcontrol);
 
 	tmpcontrol = document.createElement('label');
 	tmpcontrol.title = 'Start position in m. This value is applied when you restart';
-	tmpcontrol.innerHTML = `${newbody.name} position: <input type=text value=${newbody.position.toString()} id=${newbody.name}pos>`;
+	tmpcontrol.innerHTML = `<span>${newbody.name}</span> position: <input type=text value=${newbody.position.toString()} id=${newbody.name}pos>`;
 	controlgroup.appendChild(tmpcontrol);
 
 	tmpcontrol = document.createElement('label');
 	tmpcontrol.title = 'Start speed in m/s. This value is applied when you restart';
-	tmpcontrol.innerHTML = `${newbody.name} vector: <input type=text value=${newbody.velocity.toString()} id=${newbody.name}vec>`;
+	tmpcontrol.innerHTML = `<span>${newbody.name}</span> vector: <input type=text value=${newbody.velocity.toString()} id=${newbody.name}vec>`;
 	controlgroup.appendChild(tmpcontrol);
 
 	tmpcontrol = document.createElement('label');
-	tmpcontrol.innerHTML = `${newbody.name} speed: <input readonly type=text id=${newbody.name}velocity>`;
+	tmpcontrol.innerHTML = `<span>${newbody.name}</span> speed: <input readonly type=text id=${newbody.name}velocity>`;
 	$("#bodiesspeeds").appendChild(tmpcontrol);
 
 	newbody.mass = parseFloat(newbody.mass);
@@ -627,6 +581,8 @@ function addBody(config) {
 		// Check that, if we have an A at least, we can control it
 		bodies['A'].orientation = 0;
 	}
+
+	return newbody;
 }
 
 function applyPan(mouseX, mouseY) {
@@ -696,7 +652,6 @@ function resetfps() {
 }
 
 let GravityConstant = 6.6742e-11;
-let STROKE = true;
 let MAX_STROKES = 10e3; // applies only if rerender_strokes is set
 let VELOCITY_DISPLAY_CONFIG = {round: true, total: true};
 let ZOOMSPEED = 2;
@@ -709,6 +664,7 @@ let predictioncanvasctx = $("#predictioncanvas").getContext('2d');
 let clearstrokebtn = $("#clearstroke");
 let stepsperrunfield = $("#stepsperruninput");
 let thrustfield = $("#thrustinput");
+let trailmodefield = $("#trailmodeinput");
 let centerzoomobj = $("#centerzoom");
 
 $("#restartbtn").onclick = resetSimulation;
@@ -723,6 +679,7 @@ document.onkeydown = function(ev) {
 	switch (ev.key) {
 		case 'ArrowUp':
 			arrowUp = true;
+			bodies['A'].classList.add('boosting');
 			advanceIntro(1);
 			break;
 		case 'ArrowLeft':
@@ -748,6 +705,7 @@ document.onkeyup = function(ev) {
 	switch (ev.key) {
 		case 'ArrowUp':
 			arrowUp = false;
+			bodies['A'].classList.remove('boosting');
 			break;
 		case 'ArrowLeft':
 			arrowLeft = false;
@@ -763,6 +721,7 @@ document.onblur = function(ev) {
 	arrowLeft = false;
 	arrowRight = false;
 	mouseDown = false;
+	bodies['A'].classList.remove('boosting');
 };
 
 document.onmousemove = function(ev) {
@@ -837,7 +796,7 @@ $("#addbodybtn").onclick = function() {
 	}
 };
 
-$("#rerenderinput").onclick = function() {
+$("#trailmodeinput").onchange = function() {
 	advanceIntro(5);
 }
 
@@ -871,7 +830,7 @@ let prevMouseX = 0;
 let prevMouseY = 0;
 let mouseX = 0;
 let mouseY = 0;
-let scale = 5e8;
+let scale = 0.4;
 let panx = 0;
 let pany = 0;
 let focusBody = null;
@@ -882,17 +841,28 @@ let strokes = [];
 let framecount = 0;
 let starttime = performance.now();
 let introStep = -1;
+let draw_strokes = true;
 
 let bodies = {};
 
 resetSimulation();
 
+let loadScenario = null;
 if (location.hash.length > 2) {
-	startScenario(JSON.parse(unescape(location.hash.substring(1))));
+	if (location.hash.substring(1).startsWith('scenario=')) {
+		loadScenario = location.hash.split('=', 2)[1];
+	}
+	else {
+		startScenario(JSON.parse(unescape(location.hash.substring(1))));
+	}
 }
 else {
-	scenario3();
-	bodies['A'].orientation = 0;
+	loadScenario = '3-body_choreography';
+	thrustfield.value = '1e-6';
+	timeperstepfield.value = 10;
+	stepsperrunfield.value = 100;
+	$("#predictionaccinput").value = 1500;
+	$("#predictionstepsinput").value = 1;
 }
 
 if ( ! localStorage.introshown) {
@@ -900,6 +870,7 @@ if ( ! localStorage.introshown) {
 }
 
 fetch('res/scenarios.json').then(response => response.json()).then(function(scenarios) {
+	let loadedScenario = false;
 	for (let i in scenarios) {
 		let span = document.createElement('span');
 		span.classList.add('scenario');
@@ -924,6 +895,16 @@ fetch('res/scenarios.json').then(response => response.json()).then(function(scen
 		span.appendChild(button);
 
 		$("#scenarioslist").appendChild(span);
+		$("#scenarioslist").appendChild(document.createElement('br'));
+
+		if (loadScenario && loadScenario == scenarios[i].title.replace(/ /g, '_')) {
+			loadedScenario = true;
+			startScenario(scenarios[i]);
+		}
+	}
+
+	if (loadScenario && ! loadedScenario) {
+		alert('To-be-loaded scenario not found: ' + loadScenario + '\nSee the Scenarios menu on the left to select another.');
 	}
 });
 

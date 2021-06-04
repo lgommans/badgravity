@@ -1,26 +1,69 @@
 [{
 	"title": "3-body choreography",
-	"scale": 0.4,
-	"thrust": 1e-6,
-	"timeperstep": 10,
-	"stepsperrun": 100,
-	"predictionacc": 1500,
-	"predictionsteps": 1,
+	"maxTPS": 10,
 	"bodies": {
 		"A": {
 			"position": {"x": -97.966564648019, "y": 0},
 			"velocity": {"x": 0.00000097633614242778, "y": 0.00008122275741923826},
-			"mass": 10e3
+			"mass": 10e3,
+			"thrust": 1e-6
 		},
 		"B": {
 			"position": {"x": 10.805012998999, "y": 0},
 			"velocity": {"x": 0.0000007470338600418, "y": -0.0001092946375148027},
-			"mass": 10e3
+			"mass": 10e3,
+			"thrust": 1e-6
 		},
 		"C": {
 			"position": {"x": 87.161551684016, "y": 0},
 			"velocity": {"x": -0.00000172337000276806, "y": 0.00002807188006686936},
-			"mass": 10e3
+			"mass": 10e3,
+			"thrust": 1e-6
+		}
+	}
+},
+{
+	"title": "Sun-Earth-Moon-Mars",
+	"scale": 6e8,
+	"maxTPS": 50,
+	"bodies": {
+		"S": {
+			"hover": "Sun",
+			"mass": 19885e26,
+			"position": {"x": 0, "y": 0},
+			"velocity": {"x": 0, "y": 0}
+		},
+		"E": {
+			"hover": "Earth",
+			"mass": 5972e21,
+			"position": {"x": 150e9, "y": 0},
+			"velocity": {"x": 0, "y": 29780}
+		},
+		"M": {
+			"hover": "Moon",
+			"mass": 7342e18,
+			"position": {"x": 150399000000, "y": 0},
+			"velocity": {"x": 0, "y": 30802},
+			"thrust": 2e18
+		},
+		"MR": {
+			"hover": "Mars",
+			"mass": 6417e20,
+			"position": {"x": 228e9, "y": 0},
+			"velocity": {"x": 0, "y": 24007}
+		}
+	}
+},
+{
+	"title": "International Space Station",
+	"maxTPS": 60,
+	"bodies": {
+		"I": {
+			"hover": "International Space Station",
+			"mass": 420e3,
+			"position": {"x": 6795000, "y": 0},
+			"velocity": {"x": 0, "y": 7.66e3},
+			"relativeTo": "E"
 		}
 	}
 }]

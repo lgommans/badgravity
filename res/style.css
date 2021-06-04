@@ -33,6 +33,9 @@ input[type="button"] {
 	font-size: 0.9em;
 	padding: 5px;
 }
+select {
+	width: 150px;
+}
 #controls {
 	display: inline-block;
 	position: relative;

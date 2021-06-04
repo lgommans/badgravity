@@ -18,7 +18,11 @@
 	<span id=simcontrols class='collapseable collapsed'><span class=collapsedLabel>Simulator</span>
 		<label title="Amount of time that passes each time the simulator does one step. Lower is more precision.">Time per step: <input type=number value=10 id=timeperstepinput></label>
 		<label title="Number of steps forwards per run of the simulation (it calls the step function this many times)">Steps per run: <input type=number min=0 step=1 value=50 id=stepsperruninput></label>
-		<label title="Keep the absolute reference frame when you set camera focus to another body. Slower and limited in how much history can be shown.">Absolute motion trails: <input type=checkbox id=rerenderinput></label>
+		<label title="'absolute' keeps the absolute reference frame when you focus a body to track. Limited in how much history can be shown.">Trails: <select id=trailmodeinput>
+			<option value=non>none (fastest)</option>
+			<option value=rel selected>relative (fast)</option>
+			<option value=abs>absolute (compatible with prediction line)</option>
+		</select></label>
 		<label title="Toggle drawing future position predictions. Note that this will always use absolute motion trails.">Prediction line: <input type=checkbox id=predictioninput checked></label>
 		<label title="Multiplies 'Time per step' to use for predictions (lower is more accurate)">Prediction precision: <input type=number value=300 id=predictionaccinput></label>
 		<label title="Multiplies 'Steps per run' to use for predictions (lower is faster)">Prediction distance: <input type=number value=10 id=predictionstepsinput></label>
