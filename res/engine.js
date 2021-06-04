@@ -1,5 +1,5 @@
 // TODO features: display scale; maybe a constellation browser and/or challenge setups with also some tutorial mode
-// TODO under the hood: simplify strokes to rerender
+// TODO under the hood: fix thrust; simplify strokes to rerender
 function $(q) {
 	return document.querySelector(q);
 }
@@ -82,14 +82,23 @@ function addScenario(data) {
 		if ('hover' in data.bodies[i]) {
 			config.hoverText = data.bodies[i].hover;
 		}
-		let newbody = addBody(config);
 		if ('relativeTo' in data.bodies[i]) {
 			let t = data.bodies[i].relativeTo;
 			if (t in bodies) {
-				newbody.velocity.x += bodies[t].velocity.x;
-				newbody.velocity.y += bodies[t].velocity.y;
-				newbody.position.x += bodies[t].position.x;
-				newbody.position.y += bodies[t].position.y;
+				config.position.addTo(new Cart2(parseFloat($(`#${t}pos`).value.split(',')[0]), parseFloat($(`#${t}pos`).value.split(',')[1])));
+				config.velocity.addTo(new Cart2(parseFloat($(`#${t}vec`).value.split(',')[0]), parseFloat($(`#${t}vec`).value.split(',')[1])));
+			}
+		}
+
+		let newbody = addBody(config);
+
+		if ('relativeTo' in data.bodies[i]) {
+			let t = data.bodies[i].relativeTo;
+			if (t in bodies) {
+				newbody.position = new Cart2(bodies[t].position);
+				newbody.position.addTo(data.bodies[i].position);
+				newbody.velocity = new Cart2(bodies[t].velocity);
+				newbody.velocity.addTo(data.bodies[i].velocity);
 			}
 			else {
 				alert(`${i} is meant to orbit ${t}, but ${t} was not found. It will instead spawn relative to the center of the screen.\nYou may want to adjust its parameters in the Bodies menu.`);
@@ -679,7 +688,9 @@ document.onkeydown = function(ev) {
 	switch (ev.key) {
 		case 'ArrowUp':
 			arrowUp = true;
-			bodies['A'].classList.add('boosting');
+			if ('A' in bodies) {
+				bodies['A'].classList.add('boosting');
+			}
 			advanceIntro(1);
 			break;
 		case 'ArrowLeft':
@@ -705,7 +716,9 @@ document.onkeyup = function(ev) {
 	switch (ev.key) {
 		case 'ArrowUp':
 			arrowUp = false;
-			bodies['A'].classList.remove('boosting');
+			if ('A' in bodies) {
+				bodies['A'].classList.remove('boosting');
+			}
 			break;
 		case 'ArrowLeft':
 			arrowLeft = false;
@@ -721,7 +734,9 @@ document.onblur = function(ev) {
 	arrowLeft = false;
 	arrowRight = false;
 	mouseDown = false;
-	bodies['A'].classList.remove('boosting');
+	if ('A' in bodies) {
+		bodies['A'].classList.remove('boosting');
+	}
 };
 
 document.onmousemove = function(ev) {
