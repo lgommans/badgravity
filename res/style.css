@@ -68,7 +68,7 @@ select {
 	display: none;
 	position: absolute;
 }
-#timeperstepinput, #runsperstepinput {
+#timeperstepinput, #stepsperruninput {
 	width: 50px;
 }
 .boosting {

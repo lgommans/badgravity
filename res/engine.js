@@ -1,17 +1,5 @@
 // TODO features: display scale; maybe a constellation browser and/or challenge setups with also some tutorial mode
 // TODO under the hood: simplify strokes to rerender; fix loading of trails mode (non/rel/abs)
-function $(q) {
-	return document.querySelector(q);
-}
-
-function lengthdir_x(len, dir) {
-	return len * Math.cos(dir / 180 * Math.PI);
-}
-
-function lengthdir_y(len, dir) {
-	return len * -Math.sin(dir / 180 * Math.PI);
-}
-
 Cart2.prototype.toPagePos = function() {
 	return new Cart2(innerWidth / 2 + ((panx + this.x) / scale), innerHeight / 2 + ((pany + this.y) / scale));
 }
@@ -776,11 +764,11 @@ document.onmouseup = function(ev) {
 
 document.addEventListener("wheel", function(ev) {
 	let newscale;
-	if (ev.deltaY > 0) { 
+	if (ev.deltaY < 0) {
 		newscale = scale / ZOOMSPEED;
 		centerZoomTimeout = -ZOOM_ANIM_DURATION;
 	}
-	else if (ev.deltaY < 0) {
+	else if (ev.deltaY > 0) {
 		newscale = scale * ZOOMSPEED;
 		centerZoomTimeout = ZOOM_ANIM_DURATION;
 	}
