@@ -586,6 +586,7 @@ function addBody(config) {
 	controlgroup.appendChild(tmpcontrol);
 
 	tmpcontrol = document.createElement('label');
+	tmpcontrol.title = 'm/s';
 	tmpcontrol.innerHTML = `<span>${newbody.name}</span> speed: <input readonly type=text id=${newbody.name}velocity>`;
 	$("#bodiesspeeds").appendChild(tmpcontrol);
 
