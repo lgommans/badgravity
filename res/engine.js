@@ -1,5 +1,5 @@
 // TODO features: display scale; maybe a constellation browser and/or challenge setups with also some tutorial mode
-// TODO under the hood: fix thrust; simplify strokes to rerender
+// TODO under the hood: simplify strokes to rerender; fix loading of trails mode (non/rel/abs)
 function $(q) {
 	return document.querySelector(q);
 }
@@ -38,11 +38,17 @@ function saveScenario() {
 			velocity: {x: b.velocity.x, y: b.velocity.y},
 			mass: $(`#${b.name}mass`).value,
 		};
+		if ('thrust' in b) {
+			scenariodata.bodies[b.name].thrust = b.thrust;
+		}
 		if ('orientation' in b) {
 			scenariodata.bodies[b.name].orientation = b.orientation;
 		}
 		if ('nick' in b) {
 			scenariodata.bodies[b.name].nick = b.nick;
+		}
+		if ('title' in b) {
+			scenariodata.bodies[b.name].hover = b.title;
 		}
 	}
 
@@ -129,7 +135,10 @@ function addScenario(data) {
 	if ('predictionsteps' in data) {
 		$("#predictionstepsinput").value = data.predictionsteps;
 	}
-	if ('A' in bodies && 'thrust' in bodies['A']) {
+	if ('thrust' in data) {
+		thrustfield.value = data.thrust;
+	}
+	else if ('A' in bodies && 'thrust' in bodies['A']) {
 		thrustfield.value = bodies['A'].thrust;
 	}
 
@@ -510,12 +519,12 @@ function addBody(config) {
 		newbody.orientation = config.orientation;
 	}
 
-	if ('nick' in config) {
-		newbody.nick = config.nick;
+	if ('thrust' in config) {
+		newbody.thrust = config.thrust;
 	}
 
-	if ('hoverText' in config) {
-		newbody.title = config.hoverText;
+	if ('nick' in config) {
+		newbody.nick = config.nick;
 	}
 
 	newbody.innerText = newbody.name;
@@ -539,6 +548,11 @@ function addBody(config) {
 		}
 	};
 	controlgroup.appendChild(controlgroupCollapsedName);
+
+	if ('hoverText' in config) {
+		newbody.title = config.hoverText;
+		controlgroupCollapsedName.title = config.hoverText;
+	}
 
 	let takeControlBtn = document.createElement('input');
 	takeControlBtn.type = 'button';

@@ -23,6 +23,31 @@
 	}
 },
 {
+	"title": "Pluto-Charon (standalone)",
+	"scale": 2e5,
+	"maxTPS": 50,
+	"bodies": {
+		"P": {
+			"hover": "Pluto",
+			"mass": 1303e19,
+			"position": {"x": 0, "y": 0},
+			"velocity": {"x": 0, "y": -25.56}
+		},
+		"C": {
+			"hover": "Charon",
+			"mass": 1586e18,
+			"position": {"x": 19590e3, "y": 0},
+			"velocity": {"x": 0, "y": 210}
+		},
+		"A": {
+			"mass": 1e3,
+			"position": {"x": 7e7, "y": 0},
+			"velocity": {"x": 0, "y": 120},
+			"thrust": 1
+		}
+	}
+},
+{
 	"title": "Sun-Earth-Moon-Mars",
 	"scale": 6e8,
 	"maxTPS": 50,
@@ -63,7 +88,8 @@
 			"mass": 420e3,
 			"position": {"x": 6795000, "y": 0},
 			"velocity": {"x": 0, "y": 7.66e3},
-			"relativeTo": "E"
+			"relativeTo": "E",
+			"thrust": 1e5
 		}
 	}
 }]
