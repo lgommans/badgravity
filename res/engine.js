@@ -537,11 +537,6 @@ function addBody(config) {
 	};
 	controlgroup.appendChild(controlgroupCollapsedName);
 
-	if ('hoverText' in config) {
-		newbody.title = config.hoverText;
-		controlgroupCollapsedName.title = config.hoverText;
-	}
-
 	let takeControlBtn = document.createElement('input');
 	takeControlBtn.type = 'button';
 	takeControlBtn.value = 'control';
@@ -574,9 +569,15 @@ function addBody(config) {
 	controlgroup.appendChild(tmpcontrol);
 
 	tmpcontrol = document.createElement('label');
-	tmpcontrol.title = 'm/s';
+	tmpcontrol.title = 'absolute speed in m/s';
 	tmpcontrol.innerHTML = `<span>${newbody.name}</span> speed: <input readonly type=text id=${newbody.name}velocity>`;
 	$("#bodiesspeeds").appendChild(tmpcontrol);
+
+	if ('hoverText' in config) {
+		newbody.title = config.hoverText;
+		controlgroupCollapsedName.title = config.hoverText;
+		tmpcontrol.title = `${config.hoverText}'s absolute speed in m/s`;
+	}
 
 	newbody.mass = parseFloat(newbody.mass);
 
