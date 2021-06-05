@@ -23,6 +23,97 @@
 	}
 },
 {
+	"title": "Sun + inner solar system",
+	"scale": 1e9,
+	"bodies": {
+		"S": {
+			"hover": "Sun",
+			"mass": 19885e26,
+			"position": {"x": 0, "y": 0},
+			"velocity": {"x": 0, "y": 0}
+		},
+		"ME": {
+			"hover": "Mercury",
+			"mass": 3302e20,
+			"position": {"x": 57909e6, "y": 0},
+			"velocity": {"x": 0, "y": 47872}
+		},
+		"V": {
+			"hover": "Venus",
+			"mass": 48690e20,
+			"position": {"x": 108209e6, "y": 0},
+			"velocity": {"x": 0, "y": 35021}
+		},
+		"E": {
+			"hover": "Earth",
+			"mass": 5972e21,
+			"position": {"x": 150e9, "y": 0},
+			"velocity": {"x": 0, "y": 29780}
+		},
+		"MA": {
+			"hover": "Mars",
+			"mass": 6417e20,
+			"position": {"x": 228e9, "y": 0},
+			"velocity": {"x": 0, "y": 24007}
+		}
+	}
+},
+{
+	"title": "Moon and ISS",
+	"maxTPS": 60,
+	"bodies": {
+		"M": {
+			"hover": "Moon",
+			"mass": 7342e18,
+			"position": {"x": 399e6, "y": 0},
+			"velocity": {"x": 0, "y": 1022},
+			"thrust": 2e18,
+			"relativeTo": "E"
+		},
+		"I": {
+			"hover": "International Space Station",
+			"mass": 420e3,
+			"position": {"x": 6795000, "y": 0},
+			"velocity": {"x": 0, "y": 7.66e3},
+			"relativeTo": "E",
+			"thrust": 1e5
+		}
+	}
+},
+{
+	"title": "Outer planets",
+	"bodies": {
+		"J": {
+			"hover": "Jupiter",
+			"mass": 18987e23,
+			"position": {"x": -778412e6, "y": 0},
+			"velocity": {"x": 0, "y": -13070},
+			"relativeTo": "S"
+		},
+		"SA": {
+			"hover": "Saturn",
+			"mass": 56851e22,
+			"position": {"x": 1426725e6, "y": 0},
+			"velocity": {"x": 0, "y": 9672},
+			"relativeTo": "S"
+		},
+		"U": {
+			"hover": "Uranus",
+			"mass": 86849e21,
+			"position": {"x": 2870972e6, "y": 0},
+			"velocity": {"x": 0, "y": 6835},
+			"relativeTo": "S"
+		},
+		"N": {
+			"hover": "Neptune",
+			"mass": 10244e22,
+			"position": {"x": 4498253e6, "y": 0},
+			"velocity": {"x": 0, "y": 5478},
+			"relativeTo": "S"
+		}
+	}
+},
+{
 	"title": "Pluto-Charon (standalone)",
 	"scale": 2e5,
 	"maxTPS": 50,
@@ -44,52 +135,6 @@
 			"position": {"x": 7e7, "y": 0},
 			"velocity": {"x": 0, "y": 120},
 			"thrust": 1
-		}
-	}
-},
-{
-	"title": "Sun-Earth-Moon-Mars",
-	"scale": 6e8,
-	"maxTPS": 50,
-	"bodies": {
-		"S": {
-			"hover": "Sun",
-			"mass": 19885e26,
-			"position": {"x": 0, "y": 0},
-			"velocity": {"x": 0, "y": 0}
-		},
-		"E": {
-			"hover": "Earth",
-			"mass": 5972e21,
-			"position": {"x": 150e9, "y": 0},
-			"velocity": {"x": 0, "y": 29780}
-		},
-		"M": {
-			"hover": "Moon",
-			"mass": 7342e18,
-			"position": {"x": 150399000000, "y": 0},
-			"velocity": {"x": 0, "y": 30802},
-			"thrust": 2e18
-		},
-		"MR": {
-			"hover": "Mars",
-			"mass": 6417e20,
-			"position": {"x": 228e9, "y": 0},
-			"velocity": {"x": 0, "y": 24007}
-		}
-	}
-},
-{
-	"title": "International Space Station",
-	"maxTPS": 60,
-	"bodies": {
-		"I": {
-			"hover": "International Space Station",
-			"mass": 420e3,
-			"position": {"x": 6795000, "y": 0},
-			"velocity": {"x": 0, "y": 7.66e3},
-			"relativeTo": "E",
-			"thrust": 1e5
 		}
 	}
 }]
