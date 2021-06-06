@@ -1,6 +1,7 @@
 [{
 	"title": "3-body choreography",
 	"maxTPS": 10,
+	"scale": 0.4,
 	"bodies": {
 		"A": {
 			"position": {"x": -97.966564648019, "y": 0},

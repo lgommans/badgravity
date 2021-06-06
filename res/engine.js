@@ -1,4 +1,4 @@
-// TODO features: display scale; maybe a constellation browser and/or challenge setups with also some tutorial mode
+// TODO features: challenge setups with instructions
 // TODO under the hood: simplify strokes to rerender; fix loading of trails mode (non/rel/abs)
 Cart2.prototype.toPagePos = function() {
 	return new Cart2(innerWidth / 2 + ((panx + this.x) / scale), innerHeight / 2 + ((pany + this.y) / scale));
@@ -101,7 +101,7 @@ function addScenario(data) {
 	}
 
 	if ('scale' in data) {
-		scale = data.scale;
+		setScale(data.scale);
 	}
 	if ('maxTPS' in data) {
 		if (parseFloat(timeperstepfield.value) > data.maxTPS) {
@@ -655,6 +655,12 @@ function advanceIntro(step) {
 	}
 }
 
+function setScale(newscale) {
+	scale = newscale;
+	scaleobj.innerText = Math.round(scale * 75).toSIPrefix('m');
+	scaleobj.title = `1 pixel = ${scale.toExponential()} meters`;
+}
+
 function getfps() {
 	return framecount / ((performance.now() - starttime) / 1000);
 }
@@ -679,6 +685,7 @@ let stepsperrunfield = $("#stepsperruninput");
 let thrustfield = $("#thrustinput");
 let trailmodefield = $("#trailmodeinput");
 let centerzoomobj = $("#centerzoom");
+let scaleobj = $("#scaledisplay");
 
 $("#restartbtn").onclick = resetSimulation;
 
@@ -794,7 +801,7 @@ document.addEventListener("wheel", function(ev) {
 	let ratioToTopOrBottom = (ev.clientY - (innerHeight / 2)) / innerHeight;
 	pany += numPixelsThatWillDropOffTheTopOrBottom * ratioToTopOrBottom;*/
 
-	scale = newscale;
+	setScale(newscale);
 	advanceIntro(2);
 
 	ev.preventDefault();
@@ -849,7 +856,6 @@ let prevMouseX = 0;
 let prevMouseY = 0;
 let mouseX = 0;
 let mouseY = 0;
-let scale = 0.4;
 let panx = 0;
 let pany = 0;
 let focusBody = null;
@@ -861,9 +867,11 @@ let framecount = 0;
 let starttime = performance.now();
 let introStep = -1;
 let draw_strokes = true;
+let scale;
 
 let bodies = {};
 
+setScale(1);
 resetSimulation();
 
 let loadScenario = null;
