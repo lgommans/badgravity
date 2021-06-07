@@ -678,16 +678,30 @@ let ZOOM_ANIM_DURATION = 10;
 let CENTERZOOMSCALER = 4;
 
 let timeperstepfield = $("#timeperstepinput");
+let stepsperrunfield = $("#stepsperruninput");
 let trailscanvasctx = $("#trailscanvas").getContext('2d');
 let predictioncanvasctx = $("#predictioncanvas").getContext('2d');
 let clearstrokebtn = $("#clearstroke");
-let stepsperrunfield = $("#stepsperruninput");
 let thrustfield = $("#thrustinput");
 let trailmodefield = $("#trailmodeinput");
 let centerzoomobj = $("#centerzoom");
 let scaleobj = $("#scaledisplay");
+let playpauseobj = $("#playpause");
 
 $("#restartbtn").onclick = resetSimulation;
+
+playpauseobj.onclick = function() {
+	if (playpauseobj.value == '||') {
+		// No unicode pause symbol because it renders in bright orange on android and has crazy spacing on linux. Maybe if this improves one day... &#x23F8; and for play maybe 23F5
+		playpauseobj.previousSPR = stepsperrunfield.value;
+		stepsperrunfield.value = 0;
+		playpauseobj.value = '▸';
+	}
+	else {
+		stepsperrunfield.value = playpauseobj.previousSPR;
+		playpauseobj.value = '||';
+	}
+}
 
 clearstrokebtn.onclick = function() {
 	trailscanvasctx.clearRect(0, 0, $("#trailscanvas").width, $("#trailscanvas").height)

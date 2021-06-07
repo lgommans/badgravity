@@ -18,7 +18,9 @@
 <span id=controls class=collapseable><span class=collapsedLabel>Controls</span>
 	<span id=simcontrols class='collapseable collapsed'><span class=collapsedLabel>Simulator</span>
 		<label title="Amount of time that passes each time the simulator does one step. Lower is more precision.">Time per step: <input type=number value=10 id=timeperstepinput></label>
-		<label title="Number of steps forwards per run of the simulation (it calls the step function this many times)">Steps per run: <input type=number min=0 step=1 value=50 id=stepsperruninput></label>
+		<label title="Number of steps forwards per run of the simulation (it calls the step function this many times)">
+			Steps per run: <input type=number min=0 step=1 value=50 id=stepsperruninput> <input type=button value='||' id=playpause style='padding-top:2px; padding-bottom: 3px;'>
+		</label>
 		<label title="'absolute' keeps the absolute reference frame when you focus a body to track. Limited in how much history can be shown.">Trails: <select id=trailmodeinput>
 			<option value=non>none (fastest)</option>
 			<option value=rel selected>relative (fast)</option>
