@@ -96,7 +96,7 @@ select {
 	color: #333;
 	border: 1px solid #333;
 	border-bottom: 0;
-	overflow: show;
+	overflow: visible;
 	text-align: center;
 	display: inline-block;
 }
