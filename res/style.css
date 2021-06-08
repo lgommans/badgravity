@@ -36,12 +36,19 @@ input[type="button"] {
 select {
 	width: 150px;
 }
+#bodies {
+	user-select: none;
+	font-size: 0.9em;
+}
+.boosting {
+	box-shadow: 0 4px 4px -3px red;
+}
 #controls {
 	display: inline-block;
 	position: relative;
 	margin-left: 7px;
 	margin-top: 4px;
-	/*line-height: 2.1;*/
+	user-select: none;
 }
 .collapseable {
 	margin-left: 20px;
@@ -61,14 +68,8 @@ select {
 	content: '▾';
 	padding: 3px;
 }
-#bodies {
-	font-size: 0.9em;
-}
 #timeperstepinput, #stepsperruninput {
 	width: 50px;
-}
-.boosting {
-	box-shadow: 0 4px 4px -3px red;
 }
 #bodiescontrols>span>input[type="button"] {
 	padding: 2px;

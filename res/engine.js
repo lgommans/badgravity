@@ -554,6 +554,14 @@ function addBody(config) {
 	};
 	controlgroup.appendChild(controlgroupCollapsedName);
 
+	let followBtn = document.createElement('input');
+	followBtn.type = 'button';
+	followBtn.value = 'follow';
+	followBtn.onclick = function() {
+		focusBody = newbody;
+	};
+	controlgroup.appendChild(followBtn);
+
 	let takeControlBtn = document.createElement('input');
 	takeControlBtn.type = 'button';
 	takeControlBtn.value = 'control';
