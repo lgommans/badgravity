@@ -64,10 +64,6 @@ select {
 #bodies {
 	font-size: 0.9em;
 }
-#centerzoom {
-	display: none;
-	position: absolute;
-}
 #timeperstepinput, #stepsperruninput {
 	width: 50px;
 }

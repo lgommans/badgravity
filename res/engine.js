@@ -265,21 +265,10 @@ function run() {
 		rerender_strokes = true;
 	}
 
-	if (centerZoomTimeout != 0) {
-		if (centerZoomTimeout > 0) {
-			centerZoomTimeout -= 1;
-			centerzoomobj.style.fontSize = (centerZoomTimeout * CENTERZOOMSCALER).toString() + 'pt';
-		}
-		else {
-			centerZoomTimeout += 1;
-			centerzoomobj.style.fontSize = ((ZOOM_ANIM_DURATION + centerZoomTimeout) * CENTERZOOMSCALER).toString() + 'pt';
-		}
-		if (centerZoomTimeout == 0) {
-			centerzoomobj.style.display = 'none';
-		}
-		else {
-			centerzoomobj.style.left = `calc(50% - ${centerzoomobj.offsetWidth / 2}px)`;
-			centerzoomobj.style.top = `calc(50% - ${centerzoomobj.offsetHeight / 2}px)`;
+	if (zoomIndicatorReset > 0) {
+		zoomIndicatorReset -= 1;
+		if (zoomIndicatorReset == 0) {
+			scaledisplay.style.fontSize = '1em';
 		}
 	}
 
@@ -690,7 +679,7 @@ function advanceInfos(step) {
 
 function setScale(newscale) {
 	scale = newscale;
-	scaleobj.innerText = Math.round(scale * 75).toSIPrefix('m');
+	scaleobj.innerText = (scale * 75).toSIPrefix('m');
 	scaleobj.title = `1 pixel = ${scale.toExponential()} meters`;
 }
 
@@ -707,8 +696,7 @@ let GravityConstant = 6.6742e-11;
 let MAX_STROKES = 10e3; // applies only if rerender_strokes is set
 let VELOCITY_DISPLAY_CONFIG = {round: true, total: true};
 let ZOOMSPEED = 2;
-let ZOOM_ANIM_DURATION = 10;
-let CENTERZOOMSCALER = 4;
+let ZOOM_INDICATOR_DURATION = 8;
 
 let timeperstepfield = $("#timeperstepinput");
 let stepsperrunfield = $("#stepsperruninput");
@@ -717,7 +705,6 @@ let predictioncanvasctx = $("#predictioncanvas").getContext('2d');
 let clearstrokebtn = $("#clearstroke");
 let thrustfield = $("#thrustinput");
 let trailmodefield = $("#trailmodeinput");
-let centerzoomobj = $("#centerzoom");
 let scaleobj = $("#scaledisplay");
 let playpauseobj = $("#playpause");
 
@@ -821,19 +808,18 @@ document.addEventListener("wheel", function(ev) {
 	let newscale;
 	if (ev.deltaY < 0) {
 		newscale = scale / ZOOMSPEED;
-		centerZoomTimeout = -ZOOM_ANIM_DURATION;
+		zoomIndicatorReset = ZOOM_INDICATOR_DURATION;
+		$("#scaledisplay").style.fontSize = '1.2em';
 	}
 	else if (ev.deltaY > 0) {
 		newscale = scale * ZOOMSPEED;
-		centerZoomTimeout = ZOOM_ANIM_DURATION;
+		zoomIndicatorReset = ZOOM_INDICATOR_DURATION;
+		$("#scaledisplay").style.fontSize = '0.8em';
 	}
 	else {
 		// horizontal scroll was triggered maybe?
 		return;
 	}
-
-	centerzoomobj.innerText = '0';
-	centerzoomobj.style.display = 'block';
 
 	let newscalestr = parseFloat(newscale).toExponential(0).replace('+', '');
 	newscale = parseFloat(newscale);
@@ -921,7 +907,7 @@ let mouseY = 0;
 let panx = 0;
 let pany = 0;
 let focusBody = null;
-let centerZoomTimeout = 0;
+let zoomIndicatorReset = 0;
 let rerender_strokes = false;
 let rerenderEvery = 2;
 let strokes = [];

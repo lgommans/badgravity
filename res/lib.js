@@ -23,7 +23,14 @@ Number.prototype.toSIPrefix = function(unit, precision, separator) {
         separator = '';
     }
 
-    let exponent = parseInt(Math.floor(Math.log10(Math.abs(this.valueOf()))/3)*3);
+	let exponent;
+
+	if (this.valueOf() == 0) {
+		exponent = 0;
+	}
+	else {
+		exponent = parseInt(Math.floor(Math.log10(Math.abs(this.valueOf()))/3)*3);
+	}
 
     if (exponent < -24 || exponent > 24) {
         // toFixed also adds an exponent for numbers above 1e20 (undocumented, let's hope that's universal and not "resolved" now that I use it as a "feature"...)
