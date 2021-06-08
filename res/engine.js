@@ -183,6 +183,7 @@ function takeControl(body) {
 
 		delete previouslyA.orientation;
 		bodies[previouslyA.name] = previouslyA;
+		$('#Avelocity').parentNode.querySelector('span').innerText = previouslyA.name;
 		$('#Acontrolgroup>.collapsedLabel').innerText = previouslyA.name;
 		$('#Acontrolgroup').querySelectorAll('label>span').forEach(function(el) {
 			el.innerText = previouslyA.name;
@@ -203,6 +204,7 @@ function takeControl(body) {
 	for (let i in renameFieldSuffixes) {
 		$(`#${body.name}${renameFieldSuffixes[i]}`).id = `A${renameFieldSuffixes[i]}`;
 	}
+	$('#Avelocity').parentNode.querySelector('span').innerText = 'A';
 	$('#Acontrolgroup>.collapsedLabel').innerText = 'A';
 	$('#Acontrolgroup').querySelectorAll('label>span').forEach(function(el) {
 		el.innerText = 'A';
