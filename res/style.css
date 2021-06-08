@@ -96,15 +96,11 @@ select {
 	bottom: 19px;
 	width: 75px;
 	height: 6px;
-	border: 1px solid #000;
+	color: #333;
+	border: 1px solid #333;
 	border-bottom: 0;
 	overflow: show;
 	text-align: center;
 	display: inline-block;
-	opacity: 0.25;
-	transition: opacity 0.1s linear 0.1s;
-}
-#scaledisplay:hover {
-	opacity: 1.0;
 }
 

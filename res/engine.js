@@ -880,6 +880,14 @@ document.querySelectorAll(".collapseable").forEach(function(el) {
 	el.onclick = function(ev) {
 		if (ev.target == el) {
 			el.classList.toggle('collapsed');
+			if (el == $("#controls")) {
+				if (el.classList.contains('collapsed')) {
+					$("#scaledisplay").style.display = 'none';
+				}
+				else {
+					$("#scaledisplay").style.display = 'inline-block';
+				}
+			}
 			advanceInfos(6);
 		}
 	};
@@ -889,6 +897,14 @@ document.querySelectorAll(".collapsedLabel").forEach(function(el) {
 	el.onclick = function(ev) {
 		if (ev.target == el) {
 			el.parentNode.classList.toggle('collapsed');
+			if (ev.target.parentNode == $("#controls")) {
+				if (ev.target.parentNode.classList.contains('collapsed')) {
+					$("#scaledisplay").style.display = 'none';
+				}
+				else {
+					$("#scaledisplay").style.display = 'inline-block';
+				}
+			}
 			advanceInfos(6);
 		}
 	};
