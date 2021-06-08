@@ -4,23 +4,11 @@
 	<li> Use arrow keys to control the space ship.
 	<li> Click on a body to focus on it, scroll to zoom.
 	<li> Hover your mouse over the settings for info.
+	<li> There should be a little tutorial on the top left (not shown if you've completed it in the past).
 </ul>
 
 That's all you need to get started, I think. The rest should be
 self-explanatory. Let me know if it's not!<br><br>
-
-<strong>Challenges</strong> (from easy to hard):
-
-<br><br>(outdated)
-
-<ul>
-	<li> Create a very excentric orbit, passing super close to G but stay on screen.
-	<li> Set G's mass to 3e6 and A's to 1e6, then restart and keep G on the screen.
-	<li> Set G's mass to 3000 and A's to 100, then restart and get a speed boost of &gt;2500 in any direction from G.
-	<li> Shoot a new body into G (spacebar).
-	<li> Shoot a body in such a way that it gets into a stable orbit around G, then dock with the new object.
-	<li> Create a small solar system with the Add Body button and do transfer orbits.
-</ul>
 
 <strong><a href="./">Bad Gravity</a> is a small simulator I made
 because</strong> I had a very hard time finding an existing minigame where I
@@ -29,14 +17,15 @@ building a rocket that must first make it into orbit... I just had questions
 about orbital mechanics that online videos weren't answering and I figured: how
 hard could this be to make? Well... here we are :)<br><br>
 
-<strong>To fast-forward</strong> or slow the game down, you can use the <i>time
-per step</i> and <i>steps per run</i> controls. The simulation always tries to
-do 60 <i>runs</i> per second, but in every run you can do multiple
-<i>steps</i>. The former input field allows you to make more time pass per step
-(reducing precision) and the latter how many steps you want to do per run
-(losing simulation speed, if your computer can't keep up). Fast-forward by
-increasing the latter. If you need even more speed and your CPU doesn't keep
-up, increase the former.<br><br>
+<strong>Time controls.</strong> The simulation always tries to do 60
+<i>runs</i> per second, but in every run you can do multiple <i>steps</i>. In a
+step, the amount of attraction that each body feels towards each other is
+updated, their positions are updated, and the line is drawn. By doing more
+steps per run, the simulation runs faster, but your computer is limited in how
+many steps it can do before at 60 runs per second. To speed up further, the
+<i>time per step</i> control lets you increase the amount of time that passes
+in each step, but it gets less precise because there is more distance between
+each time the forces are calculated.<br><br>
 
 <strong>Spacebar</strong> creates a light body, pushed from A into the
 direction of the mouse. It was meant to simulate: what would happen if you
@@ -57,8 +46,8 @@ no bug that the new body doesn't move directly towards the mouse!<br><br>
 			<li> This is the amount of time passing in one step when <i>time per step = 1</i>
 			<li> Earth goes around the Sun in roughly <i>t = 365.24&times;24&times;60</i> minutes
 			<li> Presume the time controls are set to 1, that is, <i>time per step = 1</i> and <i>steps per run = 1</i>
-			<li> Presume the game runs at 60 frames per second
-			<li> Earth will go around in-game in <i>t/6.13/fps/tps/spr = 525960/6.13/60/1/1 = 1430</i> minutes
+			<li> Presume the simulation runs at 60 frames per second
+			<li> Earth will go around in <i>t/6.13/fps/tps/spr = 525960/6.13/60/1/1 = 1430</i> minutes
 			<li> With <i>time per step = 100</i> and <i>steps per run = 10</i>, it goes around in 1.430 minutes
 		</ul>
 </ul>
@@ -100,6 +89,6 @@ Links that might interest you:
 More info <strong>about me</strong> is available at <a href="/">/</a>
 <br><br>
 
-<input type=button onclick='location="./";' value="Back to the game"><br><br>
+<input type=button onclick='location="./";' value="Back to the simulation"><br><br>
 </div>
 
