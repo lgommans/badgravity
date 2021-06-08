@@ -121,6 +121,7 @@ function addScenario(data) {
 	}
 	if ('predict' in data) {
 		$("#predictioninput").checked = data.predict == 1 ? true : false;
+		clearCanvas(predictioncanvasctx); // if predict is off now, it will not clear otherwise. And if it's on, we'll draw over it anyway.
 	}
 	if ('predictionacc' in data) {
 		$("#predictionaccinput").value = data.predictionacc;
