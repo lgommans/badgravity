@@ -98,6 +98,7 @@ select {
 	border-bottom: 0;
 	overflow: visible;
 	text-align: center;
+	user-select: none;
 	display: inline-block;
 }
 
