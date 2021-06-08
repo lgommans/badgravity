@@ -51,6 +51,28 @@ Number.prototype.toSIPrefix = function(unit, precision, separator) {
     }[exponent.toString()] + unit;
 };
 
+function escapeHtml(text) {
+	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function BBCode(input) {
+	return input
+		.replace(/\r/g, '')
+		.replace(/\n/g, '<br>')
+		.replace(/\[b\]/g, '<strong>')
+		.replace(/\[\/b\]/g, '</strong>')
+		.replace(/\[i\]/g, '<i>')
+		.replace(/\[\/i\]/g, '</i>')
+		.replace(/\[u\]/g, '<u>')
+		.replace(/\[\/u\]/g, '</u>')
+		.replace(/\[ul\]/g, '<ul>')
+		.replace(/\[\/ul\]/g, '</ul>')
+		.replace(/\[ol\]/g, '<ol>')
+		.replace(/\[\/ol\]/g, '</ol>')
+		.replace(/\[li\]/g, '<li>')
+		;
+}
+
 //function Benchmark(avginterval, targetfps) {
 //	/* NOT SURE THIS IS CORRECT / WORKS BUG-FREE
 //	 *

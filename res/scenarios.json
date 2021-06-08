@@ -138,4 +138,71 @@
 			"thrust": 1
 		}
 	}
+},
+{
+	"title": "Gravity tractor 1",
+	"scale": 5e5,
+	"thrust": 5e21,
+	"predict": 0,
+	"timeperstep": 20,
+	"stepsperrun": 15,
+	"infos": [
+		"[b]Challenge:[/b] Keep B on the screen at all times",
+		"It takes a quite a few tries; you can do it! The restart button is your friend :)"
+	],
+	"bodies": {
+		"A": {
+			"mass": 1e24,
+			"position": {"x": -1e8, "y": 0},
+			"velocity": {"x": -190, "y": 500}
+		},
+		"B": {
+			"mass": 2e24,
+			"position": {"x": 1e8, "y": 0},
+			"velocity": {"x": 100, "y": -200}
+		}
+	}
+},
+{
+	"title": "Gravity tractor 2",
+	"scale": 4e4,
+	"thrust": 1e5,
+	"trails": "abs",
+	"timeperstep": 5,
+	"stepsperrun": 1,
+	"predict": 0,
+	"focus": "E",
+	"infos": [
+		"[b][1/4] A killer asteroid will hit earth next year![/b]",
+		"[b][2/4][/b] Zoom out to spot it, then use your ion drive to get there. It isn't powerful like a rocket, but it also does not burn out.",
+		"[b][3/4][/b] Using your attraction, pull it out of its orbit and save humanity.",
+		"[b][4/4][/b] Hint: You will probably want to use the simulation speed controls once you departed Earth."
+	],
+	"bodies": {
+		"S": {
+			"hover": "Sun",
+			"mass": 19885e26,
+			"position": {"x": 0, "y": 0},
+			"velocity": {"x": 0, "y": 0}
+		},
+		"E": {
+			"hover": "Earth",
+			"mass": 5972e21,
+			"position": {"x": 150e9, "y": 0},
+			"velocity": {"x": 0, "y": 29780}
+		},
+		"A": {
+			"mass": 1e6,
+			"position": {"x": 6795000, "y": 0},
+			"velocity": {"x": 0, "y": 7.66e3},
+			"relativeTo": "E"
+		},
+		"X": {
+			"hover": "Killer Asteroid",
+			"mass": 10e6,
+			"position": {"x": 1e9, "y": -161e9},
+			"velocity": {"x": 6631, "y": 5990},
+			"removeIfCloserThanTo": [2e6, "E"]
+		}
+	}
 }]

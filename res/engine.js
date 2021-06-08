@@ -1,5 +1,4 @@
-// TODO features: challenge setups with instructions
-// TODO under the hood: simplify strokes to rerender; fix loading of trails mode (non/rel/abs)
+// TODO under the hood: simplify strokes to rerender; fix saving of trails mode (non/rel/abs)
 Cart2.prototype.toPagePos = function() {
 	return new Cart2(innerWidth / 2 + ((panx + this.x) / scale), innerHeight / 2 + ((pany + this.y) / scale));
 }
@@ -98,6 +97,10 @@ function addScenario(data) {
 				alert(`${i} is meant to orbit ${t}, but ${t} was not found. It will instead spawn relative to the center of the screen.\nYou may want to adjust its parameters in the Bodies menu.`);
 			}
 		}
+
+		if ('removeIfCloserThanTo' in data.bodies[i]) {
+			newbody.removeIfCloserThanTo = data.bodies[i].removeIfCloserThanTo;
+		}
 	}
 
 	if ('scale' in data) {
@@ -137,6 +140,17 @@ function addScenario(data) {
 
 	if ('focus' in data) {
 		focusBody = (data.focus === -1 ? null : bodies[data.focus]);
+		setTimeout(clearstrokebtn.onclick, 50);
+	}
+
+	if ('trails' in data) {
+		trailmodefield.value = data.trails;
+	}
+
+	if ('infos' in data) {
+		infosQueue = data.infos;
+		infosQueue.push(null);
+		advanceInfos();
 	}
 }
 
@@ -303,7 +317,19 @@ function run() {
 
 		tmpstrokes = [];
 
+		let queueRemoval = [];
 		for (let i in bodies) {
+			if (bodies[i].removeIfCloserThanTo) {
+				let rictt = bodies[i].removeIfCloserThanTo;
+				if (rictt[1] in bodies) {
+					if (bodies[rictt[1]].position.sub(bodies[i].position).abs() < rictt[0]) {
+						removeBody(bodies[i]);
+						delete bodynames[bodynames.indexOf(i)];
+						continue;
+					}
+				}
+			}
+
 			let startPos = new Cart2(bodies[i].position);
 			bodies[i].position.addTo(bodies[i].velocity.mult(deltatime));
 			if (draw_strokes) {
@@ -583,7 +609,7 @@ function addBody(config) {
 
 	newbody.onclick = function(ev) {
 		focusBody = ev.target;
-		advanceIntro(3);
+		advanceInfos(3);
 	};
 
 	$("#bodies").appendChild(newbody);
@@ -611,14 +637,37 @@ function applyPan(mouseX, mouseY) {
 }
 
 function intro() {
-	introStep = 1;
-	$("#infobox").innerHTML = '<input type=button value=x title="Next hint" onclick="advanceIntro()"> <strong>Hint:</strong> <span>Use arrow keys to rotate "A" and fire its engine</span>'
+	infosQueue = [
+		'[b]Hint:[/b] Use arrow keys to rotate "A" and fire its engine',
+		'[b]Hint:[/b] Scroll to zoom',
+		'[b]Hint:[/b] Click on one of the objects to focus it',
+		'[b]Hint:[/b] Use the "Clear trails" button to clean up the screen',
+		"[b]Hint:[/b] Prediction lines don't match in relative reference frames (following an object), enable absolute motion trails in Simulator controls",
+		'[b]Hint:[/b] Open the "Scenarios" menu for challenges',
+	];
+	introStep = 0;
+	advanceInfos();
 }
 
-function advanceIntro(step) {
-	if (introStep == -1) { // intro finished/disabled
+function formatInfo(infomsg) {
+	$("#infobox").innerHTML = '<input type=button value=&raquo; title="Next hint" onclick="advanceInfos()"> ' + BBCode(escapeHtml(infomsg));
+}
+
+function advanceInfos(step) {
+	if (introStep == -1) {
+		// tutorial finished/disabled
+		if (infosQueue.length > 0 && step === undefined) {
+			if (infosQueue[0] === null) {
+				$("#infobox").innerHTML = '';
+			}
+			else {
+				formatInfo(infosQueue.shift());
+			}
+		}
 		return;
 	}
+
+	// we're doing the intro tutorial
 
 	if ( ! step) {
 		step = introStep;
@@ -628,25 +677,9 @@ function advanceIntro(step) {
 		return;
 	}
 
-	if (introStep == 1) {
-		$("#infobox>span").innerText = 'Scroll to zoom';
-		introStep = 2;
-	}
-	else if (introStep == 2) {
-		$("#infobox>span").innerText = 'Click on one of the objects to focus it';
-		introStep = 3;
-	}
-	else if (introStep == 3) {
-		$("#infobox>span").innerText = 'Use the "Clear trails" button to clean up the screen';
-		introStep = 4;
-	}
-	else if (introStep == 4) {
-		$("#infobox>span").innerText = "Prediction lines don't match in relative reference frames (following an object), enable absolute motion trails in Simulator controls";
-		introStep = 5;
-	}
-	else if (introStep == 5) {
-		$("#infobox>span").innerText = 'Open the "Scenarios" menu for challenges';
-		introStep = 6;
+	if (infosQueue.length > 0) {
+		introStep += 1;
+		formatInfo(infosQueue.shift());
 	}
 	else if (introStep == 6) {
 		$("#infobox").innerHTML = '';
@@ -705,7 +738,7 @@ playpauseobj.onclick = function() {
 
 clearstrokebtn.onclick = function() {
 	trailscanvasctx.clearRect(0, 0, $("#trailscanvas").width, $("#trailscanvas").height)
-	advanceIntro(4);
+	advanceInfos(4);
 };
 
 document.onkeydown = function(ev) {
@@ -716,15 +749,15 @@ document.onkeydown = function(ev) {
 			if ('A' in bodies) {
 				bodies['A'].classList.add('boosting');
 			}
-			advanceIntro(1);
+			advanceInfos(1);
 			break;
 		case 'ArrowLeft':
 			arrowLeft = true;
-			advanceIntro(1);
+			advanceInfos(1);
 			break;
 		case 'ArrowRight':
 			arrowRight = true;
-			advanceIntro(1);
+			advanceInfos(1);
 			break;
 		case ' ':
 			shoottowardsmouse();
@@ -803,7 +836,6 @@ document.addEventListener("wheel", function(ev) {
 	centerzoomobj.style.display = 'block';
 
 	let newscalestr = parseFloat(newscale).toExponential(0).replace('+', '');
-	// TODO display the scale
 	newscale = parseFloat(newscale);
 
 	/* TODO see if this works now that the other zoom issue is resolved
@@ -816,7 +848,7 @@ document.addEventListener("wheel", function(ev) {
 	pany += numPixelsThatWillDropOffTheTopOrBottom * ratioToTopOrBottom;*/
 
 	setScale(newscale);
-	advanceIntro(2);
+	advanceInfos(2);
 
 	ev.preventDefault();
 },
@@ -837,7 +869,7 @@ $("#addbodybtn").onclick = function() {
 };
 
 $("#trailmodeinput").onchange = function() {
-	advanceIntro(5);
+	advanceInfos(5);
 }
 
 $("#predictioninput").onclick = function() {
@@ -848,7 +880,7 @@ document.querySelectorAll(".collapseable").forEach(function(el) {
 	el.onclick = function(ev) {
 		if (ev.target == el) {
 			el.classList.toggle('collapsed');
-			advanceIntro(6);
+			advanceInfos(6);
 		}
 	};
 });
@@ -857,7 +889,7 @@ document.querySelectorAll(".collapsedLabel").forEach(function(el) {
 	el.onclick = function(ev) {
 		if (ev.target == el) {
 			el.parentNode.classList.toggle('collapsed');
-			advanceIntro(6);
+			advanceInfos(6);
 		}
 	};
 });
@@ -880,6 +912,7 @@ let strokes = [];
 let framecount = 0;
 let starttime = performance.now();
 let introStep = -1;
+let infosQueue = [];
 let draw_strokes = true;
 let scale;
 
