@@ -52,6 +52,8 @@ function startScenario(data) {
 		removeBody(bodies[i]);
 	}
 
+	clearCanvas(trailscanvasctx);
+
 	addScenario(data);
 }
 
@@ -692,6 +694,10 @@ function resetfps() {
 	framecount = 0;
 }
 
+function clearCanvas(ctx) {
+	ctx.clearRect(0, 0, $("#trailscanvas").width, $("#trailscanvas").height);
+}
+
 let GravityConstant = 6.6742e-11;
 let MAX_STROKES = 10e3; // applies only if rerender_strokes is set
 let VELOCITY_DISPLAY_CONFIG = {round: true, total: true};
@@ -724,7 +730,7 @@ playpauseobj.onclick = function() {
 }
 
 clearstrokebtn.onclick = function() {
-	trailscanvasctx.clearRect(0, 0, $("#trailscanvas").width, $("#trailscanvas").height)
+	clearCanvas(trailscanvasctx);
 	advanceInfos(4);
 };
 
@@ -859,7 +865,7 @@ $("#trailmodeinput").onchange = function() {
 }
 
 $("#predictioninput").onclick = function() {
-	predictioncanvasctx.clearRect(0, 0, $("#predictioncanvas").width, $("#predictioncanvas").height);
+	clearCanvas(predictioncanvasctx);
 };
 
 document.querySelectorAll(".collapseable").forEach(function(el) {
