@@ -11,17 +11,18 @@ function lengthdir_y(len, dir) {
 }
 
 Number.prototype.toSIPrefix = function(unit, precision, separator) {
-    // Precision is the number of decimal positions desired
-    // val = 123e3; val.toSIPrefix('Wh') -> '123kWh'
-    // val = 123456; val.toSIPrefix('Wh', 1, ' ') -> '123.5 kWh'
+	// Precision is the number of decimal positions desired
+	// Separator is none by default
+	// val = 123e3; val.toSIPrefix('Wh') -> '123kWh'
+	// val = 123456; val.toSIPrefix('Wh', 1, ' ') -> '123.5 kWh'
 
-    if (precision === undefined) {
-        precision = 0;
-    }
+	if (precision === undefined) {
+		precision = 0;
+	}
 
-    if (separator === undefined) {
-        separator = '';
-    }
+	if (separator === undefined) {
+		separator = '';
+	}
 
 	let exponent;
 
@@ -32,30 +33,30 @@ Number.prototype.toSIPrefix = function(unit, precision, separator) {
 		exponent = parseInt(Math.floor(Math.log10(Math.abs(this.valueOf()))/3)*3);
 	}
 
-    if (exponent < -24 || exponent > 24) {
-        // toFixed also adds an exponent for numbers above 1e20 (undocumented, let's hope that's universal and not "resolved" now that I use it as a "feature"...)
-        return this.valueOf().toFixed(precision).toString() + separator + unit;
-    }
+	if (exponent < -24 || exponent > 24) {
+		// toFixed also adds an exponent for numbers above 1e20 (undocumented, let's hope that's universal and not "resolved" now that I use it as a "feature"...)
+		return this.valueOf().toFixed(precision).toString() + separator + unit;
+	}
 
-    return (this.valueOf() / Math.pow(10, exponent)).toFixed(precision).toString() + separator + {
-        '-24': 'y',
-        '-21': 'z',
-        '-18': 'a',
-        '-15': 'f',
-        '-12': 'p',
-         '-9': 'n',
-         '-6': 'µ',
-         '-3': 'm',
-          '0': '',
-          '3': 'k',
-          '6': 'M',
-          '9': 'G',
-         '12': 'T',
-         '15': 'P',
-         '18': 'E',
-         '21': 'Z',
-         '24': 'Y',
-    }[exponent.toString()] + unit;
+	return (this.valueOf() / Math.pow(10, exponent)).toFixed(precision).toString() + separator + {
+		'-24': 'y',
+		'-21': 'z',
+		'-18': 'a',
+		'-15': 'f',
+		'-12': 'p',
+		 '-9': 'n',
+		 '-6': 'µ',
+		 '-3': 'm',
+		  '0': '',
+		  '3': 'k',
+		  '6': 'M',
+		  '9': 'G',
+		 '12': 'T',
+		 '15': 'P',
+		 '18': 'E',
+		 '21': 'Z',
+		 '24': 'Y',
+	}[exponent.toString()] + unit;
 };
 
 function escapeHtml(text) {
