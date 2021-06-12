@@ -476,6 +476,33 @@ function predictAndDraw() {
 		}
 	}
 	predictioncanvasctx.stroke();
+
+	if (arrowUp && 'A' in bodies) {
+		let newtons = parseFloat(thrustfield.value);
+		let thrust = new Cart2(lengthdir_x(newtons * deltatime / bodies['A'].mass, bodies['A'].orientation - 90), lengthdir_y(newtons * deltatime / bodies['A'].mass, bodies['A'].orientation + 90));
+		dupbodies = {};
+		for (let i in bodies) {
+			dupbodies[i] = {
+				position: new Cart2(bodies[i].position),
+				velocity: new Cart2(bodies[i].velocity),
+				mass: bodies[i].mass,
+			};
+		}
+		predictioncanvasctx.beginPath();
+		predictioncanvasctx.strokeStyle = 'rgba(255, 80, 255, 0.4)';
+		for (let i = 0; i < predictsteps; i++) {
+			dupbodies['A'].velocity.addTo(thrust);
+			step(dupbodies, bodynames, deltatime);
+			let pp = dupbodies['A'].position.toPagePos();
+			predictioncanvasctx.moveTo(pp.x, pp.y);
+
+			dupbodies['A'].position.addTo(dupbodies['A'].velocity.mult(deltatime));
+
+			pp = dupbodies['A'].position.toPagePos();
+			predictioncanvasctx.lineTo(pp.x, pp.y);
+		}
+		predictioncanvasctx.stroke();
+	}
 }
 
 function getAvailableBodyName() {
