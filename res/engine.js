@@ -278,11 +278,14 @@ function run() {
 	}
 
 	let deltatime = 10 * parseFloat(timeperstepfield.value);
+	let stepsperrun = parseFloat(stepsperrunfield.value);
 
 	let thrust = new Cart2(0, 0);
 	if ('A' in bodies) {
 		if (arrowUp) {
 			let newtons = parseFloat(thrustfield.value);
+			thrustcounter += stepsperrun * newtons * deltatime;
+			thrusttime += deltatime * stepsperrun;
 			thrust = new Cart2(lengthdir_x(newtons * deltatime / bodies['A'].mass, bodies['A'].orientation - 90), lengthdir_y(newtons * deltatime / bodies['A'].mass, bodies['A'].orientation + 90));
 		}
 		if (arrowLeft) {
@@ -301,7 +304,6 @@ function run() {
 		applyPan(mouseX, mouseY);
 	}
 
-	let stepsperrun = parseFloat(stepsperrunfield.value);
 	let bodynames = Object.keys(bodies);
 	for (let i = 0; i < stepsperrun; i++) {
 		if ('A' in bodies) {
@@ -732,6 +734,10 @@ function resetfps() {
 	framecount = 0;
 }
 
+function getThrustUsed() {
+	return `${thrustcounter / thrusttime} N for ${thrusttime} seconds (${Math.round(thrusttime / 3600)} hours, ${Math.round(thrusttime / 3600 / 24)} days) on average`;
+}
+
 function clearCanvas(ctx) {
 	ctx.clearRect(0, 0, $("#trailscanvas").width, $("#trailscanvas").height);
 }
@@ -961,6 +967,8 @@ let introStep = -1;
 let infosQueue = [];
 let draw_strokes = true;
 let scale;
+let thrustcounter = 0; // the number of Newtons used. Can be converted to delta-v, but that depends on what object you're talking about moving (its mass, specifically).
+let thrusttime = 0; // seconds of time the engine was used. Combined with the thrust counter, it can be used to see for how long you need to be able to sustain how strong a burn to do the maneuver you did.
 
 let bodies = {};
 
