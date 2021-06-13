@@ -39,17 +39,15 @@ no bug that the new body doesn't move directly towards the mouse!<br><br>
 	<li> Mass: kilograms
 	<li> Distance: meters
 	<li> Speed: meters per second
-	<li> Scale: 1 pixel = 1 Gm by default (configurable)
 	<li> Thrust: newtons
-	<li> Time unit: approximately 6.13 minutes
+	<li> Time unit: 1 step = 10 seconds
 		<ul>
-			<li> This is the amount of time passing in one step when <i>time per step = 1</i>
 			<li> Earth goes around the Sun in roughly <i>t = 365.24&times;24&times;60</i> minutes
-			<li> Presume the time controls are set to 1, that is, <i>time per step = 1</i> and <i>steps per run = 1</i>
-			<li> Presume the simulation runs at 60 frames per second
-			<li> Earth will go around in <i>t/6.13/fps/tps/spr = 525960/6.13/60/1/1 = 1430</i> minutes
-			<li> With <i>time per step = 100</i> and <i>steps per run = 10</i>, it goes around in 1.430 minutes
+			<li> With <i>time per step = 1</i> and <i>steps per run = 1</i>, if the simulation always reaches 60 frames per second,
+				then the Earth will go around in <i>t/10/fps/tps/spr = 525960/10/60/1/1 = 876.6</i> minutes
+			<li> With <i>time per step = 100</i> and <i>steps per run = 100</i>, it goes around in &approx;5 seconds
 		</ul>
+	<li> Scale: see bottom right (adjust with scroll wheel)
 </ul>
 
 <strong>Thanks</strong> to Paul Lutus over at <a href="https://arachnoid.com/orbital_dynamics/">https://arachnoid.com/orbital_dynamics/</a>
